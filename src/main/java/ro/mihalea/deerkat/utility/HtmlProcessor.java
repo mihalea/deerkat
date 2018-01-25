@@ -8,7 +8,6 @@ import org.jsoup.select.Elements;
 import ro.mihalea.deerkat.exception.*;
 import ro.mihalea.deerkat.exception.processor.FileNotFoundException;
 import ro.mihalea.deerkat.exception.processor.FileNotReadableException;
-import ro.mihalea.deerkat.exception.processor.FileReadingErrorException;
 import ro.mihalea.deerkat.model.Transaction;
 
 import java.io.IOException;
@@ -37,8 +36,8 @@ public class HtmlProcessor {
      * @param file Path to an HTML file containing transactions obtained from HSBC UAE
      * @return A list of Transaction objects created by scraping the file
      */
-    public List<Transaction> getTransactions(String file) throws FileNotFoundException, FileNotReadableException, FileReadingErrorException, TransactionParseException, TransactionFieldException {
-        log.debug("getTransactions() method has been initiated");
+    public List<Transaction> parseTransactions(String file) throws FileNotFoundException, FileNotReadableException, TransactionParseException, TransactionFieldException {
+        log.debug("parseTransactions() method has been initiated");
 
         String html = this.readFile(file);
         return this.parseFile(html);
@@ -129,7 +128,7 @@ public class HtmlProcessor {
      * @param file Path to an HTML file containing transactions obtained from HSBC UAE
      * @return Content of the HTML file
      */
-    private String readFile(String file) throws FileNotFoundException, FileNotReadableException, FileReadingErrorException {
+    private String readFile(String file) throws FileNotFoundException, FileNotReadableException {
         Path path = Paths.get(file);
 
         if (Files.notExists(path)) {
@@ -145,7 +144,7 @@ public class HtmlProcessor {
             return Files.readAllLines(path).stream()
                     .collect(Collectors.joining("\n", "", ""));
         } catch (IOException e) {
-            throw new FileReadingErrorException("The requested HTML file could not be read successfully: "
+            throw new FileNotReadableException("The requested HTML file could not be read successfully: "
                     + path.toAbsolutePath().toUri(), e);
         }
     }

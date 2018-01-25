@@ -23,3 +23,24 @@ dependencies {
 
     compile group: 'org.xerial', name: 'sqlite-jdbc', version: '3.21.0.1'
 }
+
+
+buildscript {
+    dependencies {
+        classpath group: 'de.dynamicfiles.projects.gradle.plugins', name: 'javafx-gradle-plugin', version: '8.8.2'
+    }
+    repositories {
+        mavenLocal()
+        mavenCentral()
+
+    }
+}
+apply plugin: 'javafx-gradle-plugin'
+
+jfx {
+    // minimal requirement for jfxJar-task
+    mainClass = 'ro.mihalea.deerkat.DeerKat'
+
+    // minimal requirement for jfxNative-task
+    vendor = 'Mircea Mihalea'
+}

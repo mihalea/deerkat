@@ -7,4 +7,8 @@ public class FileNotReadableException extends Exception{
     public FileNotReadableException(String s) {
         super(s);
     }
+
+    public FileNotReadableException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }
