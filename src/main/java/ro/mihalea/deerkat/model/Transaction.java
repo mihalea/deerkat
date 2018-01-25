@@ -8,7 +8,7 @@ import java.time.LocalDate;
 @Data
 public class Transaction {
     /**
-     * Unique id that identifies the transaction in the database
+     * Unique id that identifies the transaction in the repository
      */
     private int id;
 

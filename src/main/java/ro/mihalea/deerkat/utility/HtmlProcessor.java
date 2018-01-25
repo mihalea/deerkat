@@ -15,9 +15,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,18 +25,10 @@ import java.util.stream.Collectors;
  */
 @Log4j2
 public class HtmlProcessor {
-
-
     /**
-     * Date format used when processing transaction and posting dates.
-     * However, while the {@link java.util.Formatter} describes %B as "Locale-specific full month name",
-     * {@link SimpleDateFormat} uses %M
-     *
-     * @see Transaction#transactionDate
+     * Field used to convert LocalDates to String when parsing
      */
-    @SuppressWarnings("FieldCanBeLocal")
-    private final String DATE_FORMAT = "MMMM d, yyyy";
-
+    private final TransactionDateConverter converter = new TransactionDateConverter();
 
     /**
      * Open an HTML file and try to extract transactions from it by scraping the document, and return the resulting
@@ -69,7 +58,7 @@ public class HtmlProcessor {
         log.debug("Found {} transaction rows", tableRows.size());
 
         List<Transaction> transactions = new ArrayList<>();
-        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern(DATE_FORMAT);
+
         for (Element row : tableRows) {
             Elements dataElements = row.select("td");
 
@@ -86,11 +75,11 @@ public class HtmlProcessor {
                     switch (columnIndex) {
                         // Transaction date column
                         case 0:
-                            builder.transactionDate(LocalDate.parse(data.text(), dateFormatter));
+                            builder.transactionDate(converter.fromString(data.text()));
                             break;
                         // Posting date column
                         case 1:
-                            builder.postingDate(LocalDate.parse(data.text(), dateFormatter));
+                            builder.postingDate(converter.fromString(data.text()));
                             break;
                         // Details column
                         case 2:
