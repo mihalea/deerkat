@@ -1,4 +1,4 @@
-package ro.mihalea.deerkat.exception;
+package ro.mihalea.deerkat.exception.processor;
 
 /**
  * Exception thrown when an HTML file could not be found on disk

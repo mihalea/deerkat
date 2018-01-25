@@ -1,34 +1,34 @@
 package ro.mihalea.deerkat.utility;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import lombok.extern.log4j.Log4j2;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import ro.mihalea.deerkat.exception.*;
+import ro.mihalea.deerkat.exception.processor.FileNotFoundException;
+import ro.mihalea.deerkat.exception.processor.FileNotReadableException;
+import ro.mihalea.deerkat.exception.processor.FileReadingErrorException;
 import ro.mihalea.deerkat.model.Transaction;
 
-import javax.swing.text.DateFormatter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.SimpleFormatter;
 import java.util.stream.Collectors;
 
 /**
  * HtmlProcessor is used to scrape HTML files and extract transactions from them
  */
+@Log4j2
 public class HtmlProcessor {
-    final static Logger logger = LogManager.getLogger(HtmlProcessor.class);
+
 
     /**
      * Date format used when processing transaction and posting dates.
@@ -37,6 +37,7 @@ public class HtmlProcessor {
      *
      * @see Transaction#transactionDate
      */
+    @SuppressWarnings("FieldCanBeLocal")
     private final String DATE_FORMAT = "MMMM d, yyyy";
 
 
@@ -48,7 +49,7 @@ public class HtmlProcessor {
      * @return A list of Transaction objects created by scraping the file
      */
     public List<Transaction> getTransactions(String file) throws FileNotFoundException, FileNotReadableException, FileReadingErrorException, TransactionParseException, TransactionFieldException {
-        logger.debug("getTransactions() method has been initiated");
+        log.debug("getTransactions() method has been initiated");
 
         String html = this.readFile(file);
         return this.parseFile(html);
@@ -65,7 +66,7 @@ public class HtmlProcessor {
 
         // Extract all table rows containing trasaction data
         Elements tableRows = doc.select("table.hsbcTableStyle07 tr.hsbcTableRow05");
-        logger.debug("Found {} transaction rows", tableRows.size());
+        log.debug("Found {} transaction rows", tableRows.size());
 
         List<Transaction> transactions = new ArrayList<>();
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern(DATE_FORMAT);
@@ -80,26 +81,26 @@ public class HtmlProcessor {
 
             try {
                 int columnIndex = 0;
-                Transaction transaction = new Transaction();
+                Transaction.TransactionBuilder builder = Transaction.builder();
                 for (Element data : dataElements) {
                     switch (columnIndex) {
                         // Transaction date column
                         case 0:
-                            transaction.setTransactionDate(LocalDate.parse(data.text(), dateFormatter));
+                            builder.transactionDate(LocalDate.parse(data.text(), dateFormatter));
                             break;
                         // Posting date column
                         case 1:
-                            transaction.setPostingDate(LocalDate.parse(data.text(), dateFormatter));
+                            builder.postingDate(LocalDate.parse(data.text(), dateFormatter));
                             break;
                         // Details column
                         case 2:
-                            transaction.setDetails(data.text());
+                            builder.details(data.text());
                             break;
                         // Amount column
                         case 3:
                             // Remove the thousand separator which may otherwise lead to errors when parsing to a double
                             String sanitisedNumber = data.text().replace(",", "");
-                            transaction.setAmount(Double.parseDouble(sanitisedNumber));
+                            builder.amount(Double.parseDouble(sanitisedNumber));
                             break;
                     }
 
@@ -112,7 +113,7 @@ public class HtmlProcessor {
                             columnIndex + " fields");
                 }
 
-                transactions.add(transaction);
+                transactions.add(builder.build());
             } catch (DateTimeParseException e) {
                 throw new TransactionParseException("Failed to parse the date format!", e);
             } catch (NumberFormatException e) {
@@ -120,7 +121,7 @@ public class HtmlProcessor {
             }
         }
 
-        logger.info("Parsed {} transactions", transactions.size());
+        log.info("Parsed {} transactions", transactions.size());
         return transactions;
     }
 

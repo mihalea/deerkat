@@ -1,11 +1,17 @@
 package ro.mihalea.deerkat.model;
 
-import lombok.Data;
+import lombok.*;
 
 import java.time.LocalDate;
 
-public @Data
-class Transaction {
+@Builder
+@Data
+public class Transaction {
+    /**
+     * Unique id that identifies the transaction in the database
+     */
+    private int id;
+
     /**
      * Date when the transaction was received by the bank
      * FORMAT: "%B %d, %Y"
@@ -15,6 +21,7 @@ class Transaction {
     /**
      * Date when the transaction was processed by the bank
      * Format is the same as the transactionDate's
+     *
      * @see #transactionDate
      */
     private LocalDate postingDate;
@@ -29,3 +36,4 @@ class Transaction {
      */
     private double amount;
 }
+

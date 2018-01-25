@@ -1,14 +1,30 @@
 package ro.mihalea.deerkat;
 
-import ro.mihalea.deerkat.exception.*;
-import ro.mihalea.deerkat.utility.HtmlProcessor;
+import lombok.extern.log4j.Log4j2;
+import ro.mihalea.deerkat.exception.database.DatabaseConnectionException;
+import ro.mihalea.deerkat.exception.database.DatabaseStatementException;
+import ro.mihalea.deerkat.model.Transaction;
+import ro.mihalea.deerkat.repository.TransactionRepository;
 
+import java.time.LocalDate;
+
+@Log4j2
 public class Deerkat {
     public static void main(String[] args) {
-        HtmlProcessor processor = new HtmlProcessor();
         try {
-            processor.getTransactions("/home/mircea/Documents/hsbc.html").forEach(System.out::println);
-        } catch (FileNotFoundException | FileNotReadableException | TransactionParseException | FileReadingErrorException | TransactionFieldException e) {
+            TransactionRepository repository = new TransactionRepository("deerkat.db");
+
+            Transaction testTransaction = Transaction.builder()
+                    .transactionDate(LocalDate.now())
+                    .postingDate(LocalDate.now())
+                    .details("FROM MIRCEA")
+                    .amount(69d).build();
+            repository.create(testTransaction);
+
+            repository.getAll().forEach(System.out::println);
+
+
+        } catch (DatabaseConnectionException | DatabaseStatementException e) {
             e.printStackTrace();
         }
     }
