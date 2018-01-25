@@ -11,8 +11,8 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import lombok.extern.log4j.Log4j2;
-import ro.mihalea.deerkat.exception.TransactionFieldException;
-import ro.mihalea.deerkat.exception.TransactionParseException;
+import ro.mihalea.deerkat.exception.model.TransactionFieldException;
+import ro.mihalea.deerkat.exception.model.TransactionParseException;
 import ro.mihalea.deerkat.exception.processor.FileNotFoundException;
 import ro.mihalea.deerkat.exception.processor.FileNotReadableException;
 import ro.mihalea.deerkat.model.Transaction;
@@ -46,6 +46,20 @@ public class MainController {
      */
     @FXML
     private TableView<Transaction> transactionsTable;
+
+    /**
+     * Table columns used to represent transactions
+     */
+    @FXML
+    private TableColumn<Transaction, String> tcPostingDate;
+    @FXML
+    private TableColumn<Transaction, String> tcTransactionDate;
+    @FXML
+    private TableColumn<Transaction, String> tcDetails;
+    @FXML
+    private TableColumn<Transaction, String> tcAmount;
+    @FXML
+    private TableColumn<Transaction, String> tcCategory;
 
     /**
      * Open a file chooser and import the file's contents into the table using {@link HtmlProcessor} for parsing
@@ -92,18 +106,11 @@ public class MainController {
      * Setup table columns and data bindings
      */
     private void initialiseTable() {
-        TableColumn<Transaction, String> postingDateColumn = new TableColumn<>("Posting Date");
-        TableColumn<Transaction, String> transactionDateColumn = new TableColumn<>("Transaction Date");
-        TableColumn<Transaction, String> detailsColumn = new TableColumn<>("Details");
-        TableColumn<Transaction, String> amountColumn = new TableColumn<>("Amount");
+        tcPostingDate.setCellValueFactory(new PropertyValueFactory<>("postingDate"));
+        tcTransactionDate.setCellValueFactory(new PropertyValueFactory<>("transactionDate"));
+        tcDetails.setCellValueFactory(new PropertyValueFactory<>("details"));
+        tcAmount.setCellValueFactory(new PropertyValueFactory<>("amount"));
 
-        postingDateColumn.setCellValueFactory(new PropertyValueFactory<>("postingDate"));
-        transactionDateColumn.setCellValueFactory(new PropertyValueFactory<>("transactionDate"));
-        detailsColumn.setCellValueFactory(new PropertyValueFactory<>("details"));
-        amountColumn.setCellValueFactory(new PropertyValueFactory<>("amount"));
-
-        transactionsTable.getColumns().clear();
-        transactionsTable.getColumns().addAll(postingDateColumn, transactionDateColumn, detailsColumn, amountColumn);
 
         transactionsTable.setItems(tableData);
     }

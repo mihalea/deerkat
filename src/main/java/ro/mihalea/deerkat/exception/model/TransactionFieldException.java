@@ -1,4 +1,4 @@
-package ro.mihalea.deerkat.exception;
+package ro.mihalea.deerkat.exception.model;
 
 /**
  * Exception thrown when the statement in HTML format contains an unknown field or an erroneous number of fields

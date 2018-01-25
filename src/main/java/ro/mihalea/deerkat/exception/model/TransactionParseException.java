@@ -1,4 +1,4 @@
-package ro.mihalea.deerkat.exception;
+package ro.mihalea.deerkat.exception.model;
 
 /**
  * Exception thrown when failing to parse a transaction's date

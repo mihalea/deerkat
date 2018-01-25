@@ -35,5 +35,7 @@ public class Transaction {
      * Amount of money transferred
      */
     private double amount;
+
+
 }
 

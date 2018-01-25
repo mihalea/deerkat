@@ -1,6 +1,7 @@
 package ro.mihalea.deerkat.fx.ui;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -18,9 +19,16 @@ public class MainWindow extends Application {
         FXMLLoader loader = new FXMLLoader(getClass().getClassLoader().getResource("fxml/main.fxml"));
         Parent root = loader.load();
         MainController controller = loader.getController();
+
+        Platform.runLater(root::requestFocus);
+
+        Scene scene = new Scene(root, 800, 600);
+        scene.getStylesheets().add("css/main.css");
+        scene.getStylesheets().add("css/bootstrap.css");
         controller.initialise(primaryStage);
+
         primaryStage.setTitle("Deerkat");
-        primaryStage.setScene(new Scene(root, 800, 600));
+        primaryStage.setScene(scene);
         primaryStage.show();
     }
 }
