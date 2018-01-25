@@ -7,6 +7,7 @@ import ro.mihalea.deerkat.exception.processor.FileNotFoundException;
 import ro.mihalea.deerkat.exception.processor.FileNotReadableException;
 import ro.mihalea.deerkat.exception.processor.FileReadingErrorException;
 import ro.mihalea.deerkat.exception.repository.RepositoryCreateException;
+import ro.mihalea.deerkat.exception.repository.RepositoryDeleteException;
 import ro.mihalea.deerkat.exception.repository.RepositoryInitialisationException;
 import ro.mihalea.deerkat.model.Transaction;
 import ro.mihalea.deerkat.repository.CsvRepository;
@@ -21,12 +22,11 @@ public class Deerkat {
         try {
             HtmlProcessor processor = new HtmlProcessor();
             IRepository<Transaction, Integer> repository = new CsvRepository("deerkat.csv");
+            repository.nuke();
             List<Transaction> transactionList = processor.getTransactions("/home/mircea/Documents/hsbc.html");
             repository.addAll(transactionList);
 
-        } catch (RepositoryInitialisationException | RepositoryCreateException | FileReadingErrorException |
-                FileNotFoundException | TransactionFieldException | FileNotReadableException |
-                TransactionParseException e) {
+        } catch (RepositoryInitialisationException | RepositoryCreateException | FileReadingErrorException | FileNotFoundException | TransactionFieldException | FileNotReadableException | TransactionParseException | RepositoryDeleteException e) {
             e.printStackTrace();
         }
     }

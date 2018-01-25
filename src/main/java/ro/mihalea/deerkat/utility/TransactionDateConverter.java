@@ -1,9 +1,6 @@
 package ro.mihalea.deerkat.utility;
 
-import ro.mihalea.deerkat.model.Transaction;
-
 import java.sql.Date;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 

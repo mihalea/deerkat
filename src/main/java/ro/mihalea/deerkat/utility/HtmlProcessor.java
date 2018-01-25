@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,15 +25,6 @@ import java.util.stream.Collectors;
  */
 @Log4j2
 public class HtmlProcessor {
-    /**
-     * Date format used when processing transaction and posting dates.
-     * However, while the {@link java.util.Formatter} describes %B as "Locale-specific full month name",
-     * {@link SimpleDateFormat} uses %M
-     *
-     * @see Transaction#transactionDate
-     */
-    private final String DATE_FORMAT = "MMMM d, yyyy";
-
     /**
      * Field used to convert LocalDates to String when parsing
      */
@@ -74,8 +64,8 @@ public class HtmlProcessor {
 
             // If Cr is found in the last column it means that this transactions has added money to this account
             // For what I want to use it, I only need the spendings, so this transaction is ignored
-            if(dataElements.get(dataElements.size() - 1).text().equals("Cr"))
-            {
+            if (dataElements.get(dataElements.size() - 1).text().equals("Cr")) {
+                log.info("Ignoring inflow transaction: " + row.text());
                 continue;
             }
 
@@ -86,6 +76,8 @@ public class HtmlProcessor {
             dataElements.remove(dataElements.size() - 2);
 
             try {
+                String DATE_FORMAT = "MMMM d, yyyy";
+
                 int columnIndex = 0;
                 Transaction.TransactionBuilder builder = Transaction.builder();
                 for (Element data : dataElements) {

@@ -2,6 +2,7 @@ package ro.mihalea.deerkat.repository;
 
 import lombok.extern.log4j.Log4j2;
 import ro.mihalea.deerkat.exception.repository.RepositoryCreateException;
+import ro.mihalea.deerkat.exception.repository.RepositoryDeleteException;
 import ro.mihalea.deerkat.exception.repository.RepositoryInitialisationException;
 import ro.mihalea.deerkat.exception.repository.UnimplementedMethodException;
 import ro.mihalea.deerkat.model.Transaction;
@@ -13,7 +14,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
-import java.text.SimpleDateFormat;
 import java.util.List;
 
 /**
@@ -62,10 +62,9 @@ public class CsvRepository implements IRepository<Transaction, Integer> {
         } else {
             // If the file does not exist try to create it
             try {
-                Files.write(filePath, HEADERS.getBytes());
-                log.info("Created new CSV file at " + csvLocation);
-            } catch (IOException e) {
-                throw new RepositoryInitialisationException("Failed to created the CSV file", e);
+                this.nuke();
+            } catch (RepositoryDeleteException e) {
+                throw new RepositoryInitialisationException("Failed to create a new database file", e);
             }
         }
 
@@ -90,6 +89,16 @@ public class CsvRepository implements IRepository<Transaction, Integer> {
     @Override
     public List<Transaction> getAll() throws UnimplementedMethodException {
         throw new UnimplementedMethodException("getAll is not implemented");
+    }
+
+    @Override
+    public void nuke() throws RepositoryDeleteException {
+        try {
+            Files.write(filePath, HEADERS.getBytes());
+            log.info("Created new CSV file at " + filePath.toString());
+        } catch (IOException e) {
+            throw new RepositoryDeleteException("Failed to nuke the database!", e);
+        }
     }
 
     /**

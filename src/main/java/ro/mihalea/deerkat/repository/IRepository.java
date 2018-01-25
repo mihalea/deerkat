@@ -1,5 +1,6 @@
 package ro.mihalea.deerkat.repository;
 
+import ro.mihalea.deerkat.exception.repository.RepositoryDeleteException;
 import ro.mihalea.deerkat.exception.repository.RepositoryReadException;
 import ro.mihalea.deerkat.exception.repository.RepositoryCreateException;
 import ro.mihalea.deerkat.exception.repository.UnimplementedMethodException;
@@ -40,4 +41,9 @@ public interface IRepository<ItemType, KeyType> {
      * @return List of all objects stored
      */
     List<ItemType> getAll() throws RepositoryReadException, UnimplementedMethodException;
+
+    /**
+     * Method used for deleting all items from the database
+     */
+    void nuke() throws RepositoryDeleteException;
 }

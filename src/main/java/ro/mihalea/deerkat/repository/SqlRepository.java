@@ -155,4 +155,16 @@ public class SqlRepository implements IRepository<Transaction, Integer>{
 
         return transactions;
     }
+
+    @Override
+    public void nuke() throws RepositoryDeleteException {
+        try {
+            String queryString = "DELETE FROM transactions";
+            Statement statement = connection.createStatement();
+            statement.execute(queryString);
+        } catch (SQLException e) {
+            throw new RepositoryDeleteException("Failed to delete transactions table", e);
+        }
+
+    }
 }
