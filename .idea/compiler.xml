@@ -5,8 +5,8 @@
       <profile default="true" name="Default" enabled="true" />
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="deerkat_main" target="1.8" />
-      <module name="deerkat_test" target="1.8" />
+      <module name="deerkat_main" target="1.9" />
+      <module name="deerkat_test" target="1.9" />
     </bytecodeTargetLevel>
   </component>
 </project>
