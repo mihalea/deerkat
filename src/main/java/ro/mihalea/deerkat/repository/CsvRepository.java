@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
+import java.text.SimpleDateFormat;
 import java.util.List;
 
 /**
@@ -31,9 +32,14 @@ public class CsvRepository implements IRepository<Transaction, Integer> {
     private final Path filePath;
 
     /**
-     * Table headers in CSV format containing field names
+     * Table headers in CSV format containing field names as needed by YNAB4
      */
-    private final static String HEADERS = "Posting Date, Transaction Date, Details, Amount" + System.lineSeparator();
+    private final static String HEADERS = "Date,Payee,Category,Memo,Outflow,Inflow" + System.lineSeparator();
+
+    /**
+     * Date formated chosen to be compatible with the YNAB4 application
+     */
+    private final String DATE_FORMAT = "MM/dd/yy";
 
     /**
      * Construct the repository and check that the path is valid
@@ -95,8 +101,8 @@ public class CsvRepository implements IRepository<Transaction, Integer> {
         String[] fields = csv.split(",");
 
         return Transaction.builder()
-                .postingDate(converter.fromString(fields[0]))
-                .transactionDate(converter.fromString(fields[1]))
+                .postingDate(converter.fromString(fields[0], DATE_FORMAT))
+                .transactionDate(converter.fromString(fields[1], DATE_FORMAT))
                 .details(fields[2])
                 .amount(Double.parseDouble(fields[3])).build();
     }
@@ -107,13 +113,12 @@ public class CsvRepository implements IRepository<Transaction, Integer> {
      * @return String in CSV format storing a transaction
      */
     private String toCSV(Transaction transaction) {
-        return String.valueOf(converter.toString(transaction.getPostingDate()) +
-                "," +
-                converter.toString(transaction.getTransactionDate()) +
+        return String.valueOf(converter.toString(transaction.getTransactionDate(), DATE_FORMAT) +
                 "," +
                 transaction.getDetails() +
-                "," +
+                ",,," +
                 transaction.getAmount() +
+                "," +
                 System.lineSeparator());
     }
 }
