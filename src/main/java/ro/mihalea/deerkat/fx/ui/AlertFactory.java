@@ -1,10 +1,12 @@
 package ro.mihalea.deerkat.fx.ui;
 
 import javafx.scene.control.Alert;
+import lombok.extern.log4j.Log4j2;
 
 /**
  * Factory class used to facilitate the creations of dialogs with JavaFX
  */
+@Log4j2
 public class AlertFactory {
     /**
      * Create a new alert with the specified alert type, title and description and return it
@@ -18,6 +20,8 @@ public class AlertFactory {
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(description);
+
+        log.debug("Created new alert: ('" + title + "', '" + description + "'");
         return alert;
     }
 

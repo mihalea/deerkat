@@ -5,33 +5,18 @@ import ro.mihalea.deerkat.exception.repository.*;
 import ro.mihalea.deerkat.model.Transaction;
 import ro.mihalea.deerkat.utility.TransactionDateConverter;
 
-import java.io.IOException;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 /**
- * SqlRepository is used to interface with the Sqlite database
+ * TransactionSqlRepository is used to interface with the Sqlite database
  * and manage transactions
  */
 @Log4j2
-public class SqlRepository implements IRepository<Transaction, Integer>{
-    /**
-     * Path of the configuration file used to initialise the database
-     */
-    private final static String INITIALISATION_FILE = "configuration.sql";
-
-    /**
-     * Connection to the repository
-     */
-    private final Connection connection;
-
+public class TransactionSqlRepository extends AbstractSqlRepository<Transaction, Integer>{
     /**
      * Field used to convert to and from SQL dates
      */
@@ -39,65 +24,24 @@ public class SqlRepository implements IRepository<Transaction, Integer>{
 
     /**
      * Initialise the repository and connect to the local repository at the specified file path
+     *
      * @param path Location of the repository file
      * @throws RepositoryConnectionException Failed to connect to the repository
      */
-    public SqlRepository(String path) throws RepositoryConnectionException {
-        try {
-            connection = DriverManager.getConnection("jdbc:sqlite:" + path);
-            this.initialiseDatabase();
-            log.info("Successfully connected to the repository at {}", path);
-        } catch (SQLException | RepositoryInitialisationException e) {
-            throw new RepositoryConnectionException("Failed to connect to the local repository", e);
-        }
-    }
-
-    /**
-     * Create tables in the repository according to the initialisation file
-     */
-    private void initialiseDatabase() throws RepositoryInitialisationException {
-        try {
-            URL resource = getClass().getClassLoader().getResource(INITIALISATION_FILE);
-            // Abort initialisation if the initialisation file could not be found
-            if(resource == null) {
-                throw new RepositoryInitialisationException("Failed to retrieve the repository initialisation file");
-            }
-
-            Path initialisationPath = Paths.get(resource.getFile());
-
-            // Read all lines from the file and combine them into a single string
-            String content = Files.readAllLines(initialisationPath)
-                    .stream()
-                    .collect(Collectors.joining("\n","", ""));
-
-            // Split the content based on the ";" which marks a statement's end
-            String[] statements = content.split(";");
-
-            // Execute every statement identified
-            for(String statementString : statements) {
-                Statement statement = connection.createStatement();
-                statement.execute(statementString);
-                statement.close();
-            }
-
-
-        } catch (IOException e) {
-            throw new RepositoryInitialisationException("Failed to read the repository initialisation file", e);
-        } catch (SQLException e) {
-            throw new RepositoryInitialisationException("Failed to add one of the configuration statements", e);
-        }
+    public TransactionSqlRepository(String path) throws RepositoryConnectionException {
+        super(path);
     }
 
     /**
      * Add a new transaction to the repository
      * @param transaction New transaction to be added to the repository
      */
-    public void add(Transaction transaction) throws RepositoryCreateException {
+    public Optional<Integer> add(Transaction transaction) throws RepositoryCreateException {
         try {
             String createString = "INSERT INTO transactions (postingDate, transactionDate, details, amount)" +
                     "VALUES (?, ?, ?, ?)";
 
-            PreparedStatement statement = connection.prepareStatement(createString);
+            PreparedStatement statement = connection.prepareStatement(createString, Statement.RETURN_GENERATED_KEYS);
 
             statement.setDate(1, converter.toSQL(transaction.getPostingDate()));
             statement.setDate(2, converter.toSQL(transaction.getTransactionDate()));
@@ -105,6 +49,17 @@ public class SqlRepository implements IRepository<Transaction, Integer>{
             statement.setDouble(4, transaction.getAmount());
 
             statement.executeUpdate();
+            log.debug("Transaction added to repository: " + transaction);
+
+            ResultSet result = statement.getGeneratedKeys();
+            int key;
+            if(result != null && result.next()) {
+                key = result.getInt(1);
+                log.debug("Server returned KEY={} for {}", key, transaction);
+                return Optional.of(key);
+            } else {
+                throw new RepositoryCreateException("Server failed to return a primary key for " + transaction);
+            }
         } catch (SQLException e) {
             throw new RepositoryCreateException("Failed to add the transaction to the database: " + transaction, e);
         }
@@ -127,6 +82,7 @@ public class SqlRepository implements IRepository<Transaction, Integer>{
             Statement statement = connection.createStatement();
 
             ResultSet resultSet = statement.executeQuery(queryString);
+            log.info("Query returned {} rows", resultSet.getFetchSize());
             while(resultSet.next()) {
                 int id = resultSet.getInt("id");
                 // Transform from SQL Date to a LocalDate by using epoch time
@@ -159,9 +115,10 @@ public class SqlRepository implements IRepository<Transaction, Integer>{
     @Override
     public void nuke() throws RepositoryDeleteException {
         try {
-            String queryString = "DELETE FROM transactions";
+            String queryString = "DELETE FROM transactions; DELETE FROM categories;";
             Statement statement = connection.createStatement();
-            statement.execute(queryString);
+            statement.executeUpdate(queryString);
+            log.info("Database has been nuked");
         } catch (SQLException e) {
             throw new RepositoryDeleteException("Failed to delete transactions table", e);
         }

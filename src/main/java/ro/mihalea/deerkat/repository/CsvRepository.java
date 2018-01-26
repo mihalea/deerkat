@@ -15,6 +15,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * CsvRepository is used to create CSV files and to read from them
@@ -72,10 +73,11 @@ public class CsvRepository implements IRepository<Transaction, Integer> {
     }
 
     @Override
-    public void add(Transaction transaction) throws RepositoryCreateException {
+    public Optional<Integer> add(Transaction transaction) throws RepositoryCreateException {
         try {
             Files.write(filePath, this.toCSV(transaction).getBytes(), StandardOpenOption.APPEND);
             log.info("Add transaction: " + transaction);
+            return Optional.empty();
         } catch (IOException e) {
             throw new RepositoryCreateException("Failed to write the transaction to the file: " + transaction, e);
         }

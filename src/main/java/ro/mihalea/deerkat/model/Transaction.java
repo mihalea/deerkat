@@ -16,7 +16,7 @@ public class Transaction {
      * Date when the transaction was received by the bank
      * FORMAT: "%B %d, %Y"
      */
-    private LocalDate transactionDate;
+    private @NonNull LocalDate transactionDate;
 
     /**
      * Date when the transaction was processed by the bank
@@ -24,17 +24,17 @@ public class Transaction {
      *
      * @see #transactionDate
      */
-    private LocalDate postingDate;
+    private @NonNull LocalDate postingDate;
 
     /**
      * Additional details attached to the transaction, such as the merchant, money transfer information and others
      */
-    private String details;
+    private @NonNull String details;
 
     /**
      * Amount of money transferred
      */
-    private double amount;
+    private @NonNull double amount;
 
 
 }

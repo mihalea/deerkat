@@ -112,3 +112,5 @@ gradle-app.setting
 *.db
 
 *.csv
+
+*.sqlite

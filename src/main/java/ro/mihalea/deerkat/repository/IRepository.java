@@ -5,7 +5,9 @@ import ro.mihalea.deerkat.exception.repository.RepositoryReadException;
 import ro.mihalea.deerkat.exception.repository.RepositoryCreateException;
 import ro.mihalea.deerkat.exception.repository.UnimplementedMethodException;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Basic repository interface used for handling objects
@@ -17,16 +19,20 @@ public interface IRepository<ItemType, KeyType> {
      * Add a new object to the database
      * @param itemType Object to be added to the database
      */
-    void add(ItemType itemType) throws RepositoryCreateException;
+    Optional<KeyType> add(ItemType itemType) throws RepositoryCreateException;
 
     /**
      * Add multiple object to the database
      * @param list List of objects to be added to the database
      */
-    default void addAll(Iterable<ItemType> list) throws RepositoryCreateException {
+    default List<Optional<KeyType>> addAll(Iterable<ItemType> list) throws RepositoryCreateException {
+        List<Optional<KeyType>> keys = new ArrayList<>();
         for(ItemType item : list) {
-            this.add(item);
+            Optional<KeyType> key = this.add(item);
+            keys.add(key);
         }
+
+        return keys;
     }
 
     /**
