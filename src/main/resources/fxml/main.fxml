@@ -11,8 +11,8 @@
    <top>
       <FlowPane hgap="10.0" prefWidth="200.0" BorderPane.alignment="CENTER">
          <children>
-            <Button fx:id="importButton" mnemonicParsing="false" onAction="#importButtonAction" styleClass="primary" text="Import" />
-            <Button disable="true" mnemonicParsing="false" text="Export" />
+            <Button fx:id="importButton" mnemonicParsing="false" onAction="#importButton_Click" styleClass="primary" text="Import" />
+            <Button fx:id="exportButton" disable="true" mnemonicParsing="false" onAction="#exportButton_Click" text="Export" />
          </children>
          <BorderPane.margin>
             <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
