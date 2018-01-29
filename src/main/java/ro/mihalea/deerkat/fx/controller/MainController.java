@@ -525,6 +525,9 @@ public class MainController {
         transactionsTable.setItems(tableData);
     }
 
+    /**
+     * Analyse the current data set and try to categorise them automatically
+     */
     private void searchMatches() {
         boolean updated = false;
 

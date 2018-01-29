@@ -1,5 +1,6 @@
 package ro.mihalea.deerkat.classifier;
 
+import lombok.extern.log4j.Log4j2;
 import ro.mihalea.deerkat.model.Transaction;
 
 import java.util.*;
@@ -9,11 +10,12 @@ import java.util.*;
  *
  * Classifiers take some model data and based on that make predictions on one item and which category best describes it
  */
+@Log4j2
 public abstract class AbstractClassifier {
     /**
      * PERCENTAGE FROM WHICH TO HIDE MATCHES
      */
-    protected final static int CUTOFF_VALUE = 75;
+    protected final static int CUTOFF_VALUE = 50;
 
     /**
      * Value after which an automatic match is made
@@ -23,7 +25,7 @@ public abstract class AbstractClassifier {
     /**
      * Value after which the category is still set automatically but it will be displayed differently to the user
      */
-    public final static int NEED_CONFIRMATION_VALUE = 50;
+    public final static int NEED_CONFIRMATION_VALUE = 75;
 
     /**
      * Remove certain words from the list to improve matching
@@ -46,6 +48,7 @@ public abstract class AbstractClassifier {
      */
     public void addModelList(List<Transaction> data) {
         data.forEach(this::addModelItem);
+        log.debug("Added {} items to the model", data.size());
     }
 
     /**
@@ -56,11 +59,13 @@ public abstract class AbstractClassifier {
         for (Transaction model : modelData) {
             if(model.getId().equals(data.getId())) {
                 model.setCategory(data.getCategory());
+                log.debug("Model item has been updated to {}", model);
                 return;
             }
         }
 
         modelData.add(data);
+        log.debug("Model item has been added to the classifier: {}", data);
     }
 
     /**
