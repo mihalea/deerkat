@@ -1,3 +1,4 @@
 .monospaced {
-    -fx-font-family: "monospace";
+    -fx-font-family: "Source Code Pro";
+    -fx-font-size: 1.25em;
 }

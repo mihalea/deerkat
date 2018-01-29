@@ -1,9 +1,12 @@
 package ro.mihalea.deerkat.fx.controller;
 
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.EventType;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.text.Font;
 import lombok.extern.log4j.Log4j2;
 import ro.mihalea.deerkat.exception.repository.RepositoryConnectionException;
 import ro.mihalea.deerkat.exception.repository.RepositoryReadException;
@@ -13,6 +16,8 @@ import ro.mihalea.deerkat.repository.CategorySqlRepository;
 import ro.mihalea.deerkat.classifier.AbstractClassifier;
 import ro.mihalea.deerkat.classifier.CategoryMatch;
 
+import javax.swing.event.HyperlinkEvent;
+import java.awt.event.WindowEvent;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -106,19 +111,27 @@ public class ClassifierController {
     public void initialise(AbstractClassifier classifier, DialogPane dialogPane, ButtonType button, Transaction transaction) {
         try {
             updateTransactionLabels(transaction);
+            loadFont();
             initialiseCells();
             initialiseSelectionModel(dialogPane, button);
             initialiseClassifier(classifier, transaction);
-
         } catch (RepositoryReadException e) {
             log.error("Failed to load categories into dialog", e);
         }
     }
 
     /**
+     * Load a monospaced font used for displaying the recommended categories
+     */
+    private void loadFont() {
+        // Note: the double parameter (10) should control the size but appears to be doing nothing
+        Font.loadFont(getClass().getClassLoader().getResource("fonts/SourceCodePro.ttf").toExternalForm(), 10d);
+    }
+
+    /**
      * Analyse the current transaction and update the UI with the best matching categories
      *
-     * @param classifier
+     * @param classifier Classifier used to give predictions on the transaction category
      */
     private void initialiseClassifier(AbstractClassifier classifier, Transaction transaction) {
         categoryProbabilities = classifier.getMatches(transaction);
@@ -128,9 +141,10 @@ public class ClassifierController {
             lbRecommended.setManaged(false);
             lvRecommended.setManaged(false);
         } else {
-            lvRecommended.requestFocus();
-            lvRecommended.getSelectionModel().selectFirst();
-            lvRecommended.getFocusModel().focus(0);
+            Platform.runLater(() -> {
+                lvRecommended.requestFocus();
+                lvRecommended.getSelectionModel().selectFirst();
+            });
         }
 
         lvRecommended.setCellFactory(cell -> new ListCell<>() {

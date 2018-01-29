@@ -466,6 +466,7 @@ public class MainController {
 
                         getStyleClass().clear();
                         setText("");
+                        setTooltip(null);
 
                         if (empty || item == null) {
                             if (this.getTableRow().getItem() != null) {
@@ -480,12 +481,15 @@ public class MainController {
                                 switch (transaction.getConfidenceLevel()) {
                                     case NEED_CONFIRMATION:
                                         getStyleClass().add("need-confirmation");
+                                        setTooltip(new Tooltip("Medium possibility of a correct match"));
                                         break;
                                     case PRETTY_SURE:
                                         getStyleClass().add("pretty-sure");
+                                        setTooltip(new Tooltip("High possibility of a correct match"));
                                         break;
                                     case USER_SET:
                                         getStyleClass().add("user-set");
+                                        setTooltip(new Tooltip("User-set category"));
                                         break;
                                 }
                             }
