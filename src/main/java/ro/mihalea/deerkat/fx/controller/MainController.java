@@ -167,7 +167,7 @@ public class MainController {
                                 log.error("Failed to import transaction because database did not return a key for " + t);
                             }
                         } catch (RepositoryCreateException e) {
-                            log.error("Skipping transaction as it is already found in the database: " + t);
+                            log.debug("Skipping transaction as it is already found in the database: " + t);
                         }
 
                         updateProgress(items, transactions.size());

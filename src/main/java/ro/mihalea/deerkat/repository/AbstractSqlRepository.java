@@ -6,7 +6,10 @@ import ro.mihalea.deerkat.exception.repository.RepositoryCreateException;
 import ro.mihalea.deerkat.exception.repository.RepositoryDeleteException;
 import ro.mihalea.deerkat.exception.repository.RepositoryInitialisationException;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -70,18 +73,14 @@ public abstract class AbstractSqlRepository<DataType> implements IRepository<Dat
     private void initialiseDatabase() throws RepositoryInitialisationException {
         try {
             log.debug("Initialising database from " + INITIALISATION_FILE);
-            URL resource = getClass().getClassLoader().getResource(INITIALISATION_FILE);
+            InputStream stream = getClass().getClassLoader().getResourceAsStream(INITIALISATION_FILE);
             // Abort initialisation if the initialisation file could not be found
-            if(resource == null) {
+            if(stream == null) {
                 throw new RepositoryInitialisationException("Failed to retrieve the repository initialisation file");
             }
 
-            Path initialisationPath = Paths.get(resource.getFile());
-
-            // Read all lines from the file and combine them into a single string
-            String content = Files.readAllLines(initialisationPath)
-                    .stream()
-                    .collect(Collectors.joining("\n","", ""));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
+            String content = reader.lines().collect(Collectors.joining());
 
             // Split the content based on the ";" which marks a statement's end
             String[] statements = content.split(";");
@@ -99,12 +98,12 @@ public abstract class AbstractSqlRepository<DataType> implements IRepository<Dat
                 statement.executeUpdate(statementString);
                 statement.close();
             }
-        } catch (IOException e) {
-            throw new RepositoryInitialisationException("Failed to read the repository initialisation file", e);
         } catch (SQLException e) {
             throw new RepositoryInitialisationException("Failed to add one of the configuration statements", e);
         }
     }
+
+
 
     /**
      * From a statement run with RETURN_GENERATED_KEY, extract the key as an optional and return it

@@ -41,8 +41,10 @@ apply plugin: 'javafx-gradle-plugin'
 
 jfx {
     // minimal requirement for jfxJar-task
-    mainClass = 'ro.mihalea.deerkat.DeerKat'
+    mainClass = 'ro.mihalea.deerkat.fx.ui.MainWindow'
 
     // minimal requirement for jfxNative-task
     vendor = 'Mircea Mihalea'
+
+    copyAdditionalAppResourcesToJar = true
 }
