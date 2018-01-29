@@ -114,6 +114,12 @@ public class MainController {
     private ProgressBar pbImport;
 
     /**
+     * Label on the bottom in the status bar used to display messages that aren't that important
+     */
+    @FXML
+    private Label lbStatus;
+
+    /**
      * Initialise the main controller by instantiating the sql database
      */
     public MainController() {
@@ -122,9 +128,13 @@ public class MainController {
             transactionSql = new TransactionSqlRepository();
 
             classifier = new FuzzyClassifier();
+            //TODO: Remove this before deploying
+            transactionSql.nuke();
         } catch (RepositoryConnectionException e) {
             log.error("Failed to initialise a controller", e);
             System.exit(1);
+        } catch (RepositoryDeleteException e) {
+            e.printStackTrace();
         }
     }
 
@@ -187,11 +197,15 @@ public class MainController {
                     int total = pair.getValue();
 
                     log.info("Successfully imported {} out of {} transaction from HTML", items, total);
-                    alertFactory.create(
-                            items == total ? Alert.AlertType.INFORMATION : Alert.AlertType.ERROR,
-                            "Import finalised",
-                            items + " out of " + total + " transactions have been imported"
-                    ).showAndWait();
+
+                    if(items == 0 && total != 0) {
+                        alertFactory.createError("Import", "No transactions have been imported. " +
+                                "They may already be in the database.").showAndWait();
+                    } else {
+                        lbStatus.setText(items + " out of " + total + " transactions have been imported");
+                    }
+
+
 
                     // Hide the progress bar again
                     pbImport.setVisible(false);
@@ -465,6 +479,11 @@ public class MainController {
     private void searchPerfectMatches() {
         boolean updated = false;
 
+        // Count the number of transactions found that are a perfect match
+        int perfect = 0;
+        //Count the number of transactions found may need user confirmation
+        int needConfirmation = 0;
+
         for (Transaction transaction : tableData) {
             if(transaction.getCategory() == null) {
                 Optional<CategoryMatch> best = classifier.getBest(transaction);
@@ -475,14 +494,44 @@ public class MainController {
                         transaction.setCategory(match.getCategory());
                         transaction.setConfidenceLevel(ConfidenceLevel.PRETTY_SURE);
                         updated = true;
+                        perfect++;
                         log.info("Automatically matched {} with {}", transaction, match);
                     } else if (match.getSimilarity() > AbstractClassifier.NEED_CONFIRMATION_VALUE) {
                         transaction.setCategory(match.getCategory());
                         transaction.setConfidenceLevel(ConfidenceLevel.NEED_CONFIRMATION);
                         log.info("Confirmation needed for matching {} with {}", transaction, match);
+                        needConfirmation++;
+                        updated = true;
                     }
                 }
             }
+        }
+
+        // Construct status messages
+        if(perfect > 0 || needConfirmation > 0) {
+            String message = "";
+
+            if(perfect > 0) {
+                message = perfect + " perfect match";
+                if(perfect != 1) {
+                    message += "es";
+                }
+            }
+
+            if(perfect > 0 && needConfirmation > 0) {
+                message += " and ";
+            }
+
+            if(needConfirmation > 0) {
+                message += needConfirmation + " possible match";
+                if(needConfirmation != 1) {
+                    message += "es";
+                }
+            }
+
+            message += " " + (perfect + needConfirmation == 1 ? "has" : "have") + " been found";
+
+            lbStatus.setText(message);
         }
 
         if(updated) {

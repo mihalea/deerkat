@@ -43,7 +43,6 @@ public class ClassifierDialog extends Dialog<Category> {
             controller.initialise(classifier, getDialogPane(), okay, transaction);
 
             setResultConverter(buttonType -> {
-                System.err.println(buttonType);
                 if(buttonType.getButtonData() == ButtonBar.ButtonData.OK_DONE) {
                     return controller.getSelectedCategory();
                 } else {
