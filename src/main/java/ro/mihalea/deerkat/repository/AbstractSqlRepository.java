@@ -36,7 +36,7 @@ public abstract class AbstractSqlRepository<DataType> implements IRepository<Dat
     /**
      * Connection to the repository
      */
-    protected final Connection connection;
+    protected static Connection connection;
 
     /**
      * Default constructor that uses the default database file
@@ -56,7 +56,9 @@ public abstract class AbstractSqlRepository<DataType> implements IRepository<Dat
             // If the database file does not exists the initialisation method needs to be run
             boolean newDatabase = Files.notExists(Paths.get(path));
 
-            connection = DriverManager.getConnection("jdbc:sqlite:" + path);
+            if(connection == null) {
+                connection = DriverManager.getConnection("jdbc:sqlite:" + path);
+            }
 
             if(newDatabase) {
                 this.initialiseDatabase();
