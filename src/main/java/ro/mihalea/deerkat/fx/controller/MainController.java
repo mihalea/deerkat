@@ -25,6 +25,7 @@ import ro.mihalea.deerkat.fx.ui.AlertFactory;
 import ro.mihalea.deerkat.fx.ui.ClassifierDialog;
 import ro.mihalea.deerkat.model.Category;
 import ro.mihalea.deerkat.model.Transaction;
+import ro.mihalea.deerkat.repository.CategorySqlRepository;
 import ro.mihalea.deerkat.repository.CsvRepository;
 import ro.mihalea.deerkat.repository.TransactionSqlRepository;
 import ro.mihalea.deerkat.classifier.AbstractClassifier;
@@ -67,6 +68,11 @@ public class MainController {
      * SQL Repository used to save multiple imports in the database to increase the classifier's accuracy
      */
     private TransactionSqlRepository transactionSql;
+
+    /**
+     * SQL repository used to retrieve categories from the database
+     */
+    private CategorySqlRepository categorySql;
 
     /**
      * Factory used to create alert dialogs
@@ -128,15 +134,12 @@ public class MainController {
         try {
             log.debug("Starting MainController");
             transactionSql = new TransactionSqlRepository();
+            categorySql = new CategorySqlRepository();
 
             classifier = new FuzzyClassifier();
-            //TODO: Remove this before deploying
-            transactionSql.nuke();
         } catch (RepositoryConnectionException e) {
             log.error("Failed to initialise a controller", e);
             System.exit(1);
-        } catch (RepositoryDeleteException e) {
-            e.printStackTrace();
         }
     }
 
@@ -150,7 +153,7 @@ public class MainController {
         // Open the file chooser dialog and let the user select an html file
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Open statement");
-        fileChooser.setSelectedExtensionFilter(new FileChooser.ExtensionFilter("HTML file", "html"));
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("HTML file (*.html)", "*.html"));
         File file = fileChooser.showOpenDialog(stage);
 
         if (file != null) {
@@ -256,6 +259,30 @@ public class MainController {
     }
 
     /**
+     * Load the previously imported transaction into the table
+     */
+    @FXML
+    protected void btnPrevious_Action() {
+        Alert confirmation = alertFactory.create(
+                Alert.AlertType.CONFIRMATION,
+                "Clear table",
+                "Are you sure you want to discard the current transactions?"
+        );
+
+        if(tableData.size() == 0 ||
+                (confirmation.showAndWait().isPresent() && confirmation.getResult() == ButtonType.OK)) {
+            try {
+                List<Transaction> transactions = transactionSql.getAll(categorySql);
+                tableData.clear();
+                tableData.addAll(transactions);
+            } catch (RepositoryReadException e) {
+                log.error("Failed to import database transactions into the table", e);
+                alertFactory.createError("Error", "Failed to load previous transactions");
+            }
+        }
+    }
+
+    /**
      * Export the transaction stored in the table to a CSV file picked by the user.
      */
     @FXML
@@ -272,21 +299,6 @@ public class MainController {
 
             if (result) {
                 exportCsv();
-                commitToDatabase();
-            }
-        }
-    }
-
-    /**
-     * Add all imported transactions into the database
-     */
-    private void commitToDatabase() {
-        for (Transaction t : tableData) {
-            try {
-                // All transactions are added to the database upon import so we update them instead of adding them
-                transactionSql.update(t);
-            } catch (RepositoryUpdateException e) {
-                log.error("Failed to update transaction");
             }
         }
     }
@@ -338,7 +350,7 @@ public class MainController {
                 } else {
                     csvRepository = new CsvRepository(path);
                 }
-                
+
                 return true;
             } catch (RepositoryInitialisationException | RepositoryDeleteException e) {
                 log.warn("Failed to initialise csv repository at: " + file.getAbsolutePath(), e);
@@ -394,7 +406,7 @@ public class MainController {
     private void initialiseClassifier() {
         try {
             // Select only transaction that have been categorised
-            List<Transaction> transactions = transactionSql.getAll().stream()
+            List<Transaction> transactions = transactionSql.getAll(categorySql).stream()
                     .filter(t -> t.getCategory() != null)
                     .collect(Collectors.toList());
 
@@ -468,6 +480,13 @@ public class MainController {
                         classifier.addModelItem(transaction);
                         searchPerfectMatches();
                         transactionsTable.refresh();
+
+                        try {
+                            transactionSql.update(transaction);
+                        } catch (RepositoryUpdateException e) {
+                            log.error("Failed to update transaction after categorisation: " + transaction, e);
+                            lbStatus.setText("Failed to update transaction in the database");
+                        }
                     }
                 });
 

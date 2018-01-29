@@ -94,6 +94,7 @@ public abstract class AbstractSqlRepository<DataType> implements IRepository<Dat
             log.debug("Running {} configuration statements", validStatements.size());
             // Execute every statement identified
             for(String statementString : validStatements) {
+                log.debug("Executing: " + statementString);
                 Statement statement = connection.createStatement();
                 statement.executeUpdate(statementString);
                 statement.close();

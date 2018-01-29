@@ -70,6 +70,11 @@ public class CsvRepository implements IRepository<Transaction> {
     }
 
     @Override
+    public Optional<Transaction> getById(Long id) throws RepositoryReadException, UnimplementedMethodException {
+        throw new UnimplementedMethodException("GetById is not implemented");
+    }
+
+    @Override
     public Optional<Long> add(Transaction transaction) throws RepositoryCreateException {
         try {
             Files.write(filePath, this.toCSV(transaction).getBytes(), StandardOpenOption.APPEND);

@@ -2,6 +2,7 @@ package ro.mihalea.deerkat.repository;
 
 import lombok.extern.log4j.Log4j2;
 import ro.mihalea.deerkat.exception.repository.*;
+import ro.mihalea.deerkat.model.Category;
 import ro.mihalea.deerkat.model.Transaction;
 import ro.mihalea.deerkat.utility.TransactionDateConverter;
 
@@ -71,8 +72,8 @@ public class TransactionSqlRepository extends AbstractSqlRepository<Transaction>
             statement.setDate(2, converter.toSQL(item.getTransactionDate()));
             statement.setString(3, item.getDetails());
             statement.setDouble(4, item.getAmount());
-            statement.setLong(5, item.getId());
-            statement.setObject(6, item.getCategory() != null ? item.getCategory().getId() : null);
+            statement.setObject(5, item.getCategory() != null ? item.getCategory().getId() : null);
+            statement.setLong(6, item.getId());
 
             statement.executeUpdate();
             log.debug("Transaction has been updated: " + item);
@@ -81,15 +82,12 @@ public class TransactionSqlRepository extends AbstractSqlRepository<Transaction>
         }
     }
 
-    /**
-     * Retrieve all the transaction stored in the repository
-     * @return List of all transactions
-     */
-    public List<Transaction> getAll() throws RepositoryReadException {
+
+    public List<Transaction> getAll(CategorySqlRepository categoryRepository) throws RepositoryReadException {
         List<Transaction> transactions = new ArrayList<>();
         try {
 
-            String queryString = "SELECT id, postingDate, transactionDate, details, amount FROM transactions";
+            String queryString = "SELECT id, postingDate, transactionDate, details, amount, categoryId FROM transactions";
             Statement statement = connection.createStatement();
 
             ResultSet resultSet = statement.executeQuery(queryString);
@@ -101,7 +99,18 @@ public class TransactionSqlRepository extends AbstractSqlRepository<Transaction>
                 LocalDate transactionDate = converter.fromSQL(resultSet.getDate("transactionDate"));
                 String details = resultSet.getString("details");
                 Double amount = resultSet.getDouble("amount");
+                Category category = null;
 
+                // If the category repository is set and the id is not null try and retrieve the category from the db
+                if(categoryRepository != null) {
+                    Long categoryId = resultSet.getLong("categoryId");
+                    if(!resultSet.wasNull()) {
+                        Optional<Category> optional = categoryRepository.getById(categoryId);
+                        if(optional.isPresent()) {
+                            category = optional.get();
+                        }
+                    }
+                }
                 // Build a new transaction using the generated builder and the fields above
                 Transaction transaction = Transaction.builder()
                         .id(id)
@@ -109,6 +118,7 @@ public class TransactionSqlRepository extends AbstractSqlRepository<Transaction>
                         .transactionDate(transactionDate)
                         .details(details)
                         .amount(amount)
+                        .category(category)
                         .build();
 
                 if(transaction != null) {
@@ -118,12 +128,26 @@ public class TransactionSqlRepository extends AbstractSqlRepository<Transaction>
             }
 
             log.info("Database returned {} transactions", count);
-        } catch (SQLException e) {
+        } catch (SQLException | RepositoryReadException e) {
             throw new RepositoryReadException("Failed to retrieve all transactions", e);
         }
 
 
         return transactions;
+    }
+
+    /**
+     * Retrieve all the transaction stored in the repository
+     * @return List of all transactions
+     */
+    @Override
+    public List<Transaction> getAll() throws RepositoryReadException {
+        return this.getAll(null);
+    }
+
+    @Override
+    public Optional<Transaction> getById(Long id) throws UnimplementedMethodException {
+        throw new UnimplementedMethodException("GetById is not implemented");
     }
 
     @Override

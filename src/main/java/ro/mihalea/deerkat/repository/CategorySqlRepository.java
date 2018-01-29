@@ -5,6 +5,7 @@ import ro.mihalea.deerkat.exception.repository.*;
 import ro.mihalea.deerkat.model.Category;
 import ro.mihalea.deerkat.model.Transaction;
 
+import javax.swing.text.html.Option;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -87,6 +88,36 @@ public class CategorySqlRepository extends AbstractSqlRepository<Category>{
     @Override
     public void update(Category category) throws RepositoryUpdateException, UnimplementedMethodException {
         throw new UnimplementedMethodException("Update is not implemented");
+    }
+
+    @Override
+    public Optional<Category> getById(Long id) throws RepositoryReadException {
+        try {
+            String select = "SELECT parentId, title FROM categories WHERE id = ? LIMIT 1";
+            PreparedStatement statement = connection.prepareStatement(select);
+            statement.setLong(1, id);
+
+            ResultSet resultSet = statement.executeQuery();
+            if(resultSet.next()) {
+                Long parentId = resultSet.getLong("parentId");
+                if(resultSet.wasNull()) {
+                    parentId = null;
+                }
+                String title = resultSet.getString("title");
+
+                Category category = Category.builder()
+                        .id(id)
+                        .parentId(parentId)
+                        .title(title)
+                        .build();
+
+                return Optional.of(category);
+            }
+        } catch (SQLException e) {
+            throw new RepositoryReadException("Failed to get item by id: " + id);
+        }
+
+        return Optional.empty();
     }
 
     @Override

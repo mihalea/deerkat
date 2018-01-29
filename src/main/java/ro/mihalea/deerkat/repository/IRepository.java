@@ -39,6 +39,13 @@ public interface IRepository<ItemType> {
     List<ItemType> getAll() throws RepositoryReadException, UnimplementedMethodException;
 
     /**
+     * Returns the item stored in the database with the same id if it exists
+     * @param id Id of the item
+     * @return Item of the same id
+     */
+    Optional<ItemType> getById(Long id) throws RepositoryReadException, UnimplementedMethodException;
+
+    /**
      * Update a transaction in the database
      * @param item Transaction that needs to be updated
      */

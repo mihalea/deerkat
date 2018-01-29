@@ -18,6 +18,10 @@
     -fx-background-color: #c0ffa2;
 }
 
+#transactionsTable :selected .no-category {
+    -fx-text-fill: #fff;
+}
+
 #transactionsTable :selected .need-confirmation {
     -fx-background-color: #6a0c00;
     -fx-text-fill: #fff;
