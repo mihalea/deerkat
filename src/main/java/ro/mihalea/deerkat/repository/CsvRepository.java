@@ -1,10 +1,7 @@
 package ro.mihalea.deerkat.repository;
 
 import lombok.extern.log4j.Log4j2;
-import ro.mihalea.deerkat.exception.repository.RepositoryCreateException;
-import ro.mihalea.deerkat.exception.repository.RepositoryDeleteException;
-import ro.mihalea.deerkat.exception.repository.RepositoryInitialisationException;
-import ro.mihalea.deerkat.exception.repository.UnimplementedMethodException;
+import ro.mihalea.deerkat.exception.repository.*;
 import ro.mihalea.deerkat.model.Transaction;
 import ro.mihalea.deerkat.utility.TransactionDateConverter;
 
@@ -86,6 +83,11 @@ public class CsvRepository implements IRepository<Transaction> {
     @Override
     public List<Transaction> getAll() throws UnimplementedMethodException {
         throw new UnimplementedMethodException("getAll is not implemented");
+    }
+
+    @Override
+    public void update(Transaction transaction) throws RepositoryUpdateException, UnimplementedMethodException {
+        throw new UnimplementedMethodException("update is not implemented");
     }
 
     @Override

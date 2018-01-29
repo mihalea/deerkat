@@ -3,6 +3,7 @@ package ro.mihalea.deerkat.repository;
 import lombok.extern.log4j.Log4j2;
 import ro.mihalea.deerkat.exception.repository.*;
 import ro.mihalea.deerkat.model.Category;
+import ro.mihalea.deerkat.model.Transaction;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -81,6 +82,11 @@ public class CategorySqlRepository extends AbstractSqlRepository<Category>{
         }
 
         return categories;
+    }
+
+    @Override
+    public void update(Category category) throws RepositoryUpdateException, UnimplementedMethodException {
+        throw new UnimplementedMethodException("Update is not implemented");
     }
 
     @Override

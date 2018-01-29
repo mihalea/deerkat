@@ -1,9 +1,7 @@
 package ro.mihalea.deerkat.repository;
 
-import ro.mihalea.deerkat.exception.repository.RepositoryDeleteException;
-import ro.mihalea.deerkat.exception.repository.RepositoryReadException;
-import ro.mihalea.deerkat.exception.repository.RepositoryCreateException;
-import ro.mihalea.deerkat.exception.repository.UnimplementedMethodException;
+import ro.mihalea.deerkat.exception.repository.*;
+import ro.mihalea.deerkat.model.Transaction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +37,12 @@ public interface IRepository<ItemType> {
      * @return List of all objects stored
      */
     List<ItemType> getAll() throws RepositoryReadException, UnimplementedMethodException;
+
+    /**
+     * Update a transaction in the database
+     * @param item Transaction that needs to be updated
+     */
+    void update(ItemType item) throws RepositoryUpdateException, UnimplementedMethodException;
 
     /**
      * Method used for deleting all items from the database

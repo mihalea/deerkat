@@ -37,22 +37,47 @@ public class TransactionSqlRepository extends AbstractSqlRepository<Transaction>
      */
     public Optional<Long> add(Transaction transaction) throws RepositoryCreateException {
         try {
-            String createString = "INSERT INTO transactions (postingDate, transactionDate, details, amount)" +
-                    "VALUES (?, ?, ?, ?)";
+            String createString = "INSERT INTO transactions (id, postingDate, transactionDate, details, amount)" +
+                    "VALUES (?, ?, ?, ?, ?)";
 
             PreparedStatement statement = connection.prepareStatement(createString, Statement.RETURN_GENERATED_KEYS);
 
-            statement.setDate(1, converter.toSQL(transaction.getPostingDate()));
-            statement.setDate(2, converter.toSQL(transaction.getTransactionDate()));
-            statement.setString(3, transaction.getDetails());
-            statement.setDouble(4, transaction.getAmount());
+            statement.setObject(1, transaction.getId());
+            statement.setDate(2, converter.toSQL(transaction.getPostingDate()));
+            statement.setDate(3, converter.toSQL(transaction.getTransactionDate()));
+            statement.setString(4, transaction.getDetails());
+            statement.setDouble(5, transaction.getAmount());
 
             statement.executeUpdate();
             log.debug("Transaction added to repository: " + transaction);
 
-            return this.extractId(statement);
+            return transaction.getId() != null ? Optional.of(transaction.getId()) : this.extractId(statement);
         } catch (SQLException e) {
             throw new RepositoryCreateException("Failed to add the transaction to the database: " + transaction, e);
+        }
+    }
+
+    @Override
+    public void update(Transaction item) throws RepositoryUpdateException {
+        try {
+            String updateString = "UPDATE transactions  SET postingDate = ?, transactionDate = ?, " +
+                    "details = ?, amount = ?, categoryId = ? " +
+                    "WHERE " +
+                    "id = ?";
+
+            PreparedStatement statement = connection.prepareStatement(updateString);
+
+            statement.setDate(1, converter.toSQL(item.getPostingDate()));
+            statement.setDate(2, converter.toSQL(item.getTransactionDate()));
+            statement.setString(3, item.getDetails());
+            statement.setDouble(4, item.getAmount());
+            statement.setLong(5, item.getId());
+            statement.setObject(6, item.getCategory() != null ? item.getCategory().getId() : null);
+
+            statement.executeUpdate();
+            log.debug("Transaction has been updated: " + item);
+        } catch (SQLException e) {
+            throw new RepositoryUpdateException("Failed to update the transaction :" + item, e);
         }
     }
 

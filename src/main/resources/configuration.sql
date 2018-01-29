@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   details VARCHAR(255) NOT NULL,
   amount DOUBLE NOT NULL,
   categoryId INTEGER,
+  UNIQUE (transactionDate, postingDate, details, amount) ON CONFLICT FAIL,
   FOREIGN KEY (categoryId) REFERENCES categories(id)
 );
 

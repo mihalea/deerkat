@@ -33,11 +33,13 @@ import ro.mihalea.deerkat.classifier.FuzzyClassifier;
 import ro.mihalea.deerkat.utility.HtmlProcessor;
 
 import java.io.File;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Controller for {@link ro.mihalea.deerkat.fx.ui.MainWindow}.
@@ -120,14 +122,9 @@ public class MainController {
             transactionSql = new TransactionSqlRepository();
 
             classifier = new FuzzyClassifier();
-
-            //TODO: Remove this once debugging is done
-            transactionSql.nuke();
         } catch (RepositoryConnectionException e) {
             log.error("Failed to initialise a controller", e);
             System.exit(1);
-        } catch (RepositoryDeleteException e) {
-            e.printStackTrace();
         }
     }
 
@@ -159,14 +156,18 @@ public class MainController {
                     int items = 0;
 
                     for (Transaction t : transactions) {
-                        Optional<Long> key = transactionSql.add(t);
-                        if (key.isPresent()) {
-                            t.setId(key.get());
-                            tableData.add(t);
-                            items++;
-                        } else {
-                            // A key should always be present, but catch this error anyways
-                            log.error("Failed to import transaction because database did not return a key for " + t);
+                        try {
+                            Optional<Long> key = transactionSql.add(t);
+                            if (key.isPresent()) {
+                                t.setId(key.get());
+                                tableData.add(t);
+                                items++;
+                            } else {
+                                // A key should always be present, but catch this error anyways
+                                log.error("Failed to import transaction because database did not return a key for " + t);
+                            }
+                        } catch (RepositoryCreateException e) {
+                            log.error("Skipping transaction as it is already found in the database: " + t);
                         }
 
                         updateProgress(items, transactions.size());
@@ -256,6 +257,21 @@ public class MainController {
 
             if(result) {
                 exportCsv();
+                commitToDatabase();
+            }
+        }
+    }
+
+    /**
+     * Add all imported transactions into the database
+     */
+    private void commitToDatabase() {
+        for(Transaction t: tableData) {
+            try {
+                // All transactions are added to the database upon import so we update them instead of adding them
+                transactionSql.update(t);
+            } catch (RepositoryUpdateException e) {
+                log.error("Failed to update transaction");
             }
         }
     }
@@ -358,7 +374,11 @@ public class MainController {
      */
     private void initialiseClassifier() {
         try {
-            List<Transaction> transactions = transactionSql.getAll();
+            // Select only transaction that have been categorised
+            List<Transaction> transactions = transactionSql.getAll().stream()
+                    .filter(t -> t.getCategory() != null)
+                    .collect(Collectors.toList());
+
             classifier.addModelList(transactions);
         } catch (RepositoryReadException e) {
             log.error("Failed to inject model data into the classifier", e);
