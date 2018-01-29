@@ -351,10 +351,13 @@ public class MainController {
 
 
                         getStyleClass().clear();
+                        setText("");
 
                         if(empty || item == null) {
-                            setText("Set category");
-                            getStyleClass().add("no-category");
+                            if(this.getTableRow().getItem() != null){
+                                setText("Set category");
+                                getStyleClass().add("no-category");
+                            }
                         } else {
                             setText(item.getTitle());
                             Transaction transaction = tableData.get(this.getIndex());
