@@ -43,8 +43,8 @@ public class CsvRepository implements IRepository<Transaction> {
      * Construct the repository and check that the path is valid
      * @param csvLocation Path to the csv file
      */
-    public CsvRepository(String csvLocation) throws RepositoryInitialisationException {
-        filePath = Paths.get(csvLocation);
+    public CsvRepository(Path csvLocation) throws RepositoryInitialisationException {
+        this.filePath = csvLocation;
 
         if(Files.exists(filePath)) {
             // If the file exists check that it is a regular files, and that it's readable and writeable
@@ -128,5 +128,9 @@ public class CsvRepository implements IRepository<Transaction> {
                 transaction.getAmount() +
                 "," +
                 System.lineSeparator());
+    }
+
+    public Path getFilePath() {
+        return filePath;
     }
 }

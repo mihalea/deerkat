@@ -33,6 +33,8 @@ import ro.mihalea.deerkat.classifier.FuzzyClassifier;
 import ro.mihalea.deerkat.utility.HtmlProcessor;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -198,13 +200,12 @@ public class MainController {
 
                     log.info("Successfully imported {} out of {} transaction from HTML", items, total);
 
-                    if(items == 0 && total != 0) {
+                    if (items == 0 && total != 0) {
                         alertFactory.createError("Import", "No transactions have been imported. " +
                                 "They may already be in the database.").showAndWait();
                     } else {
                         lbStatus.setText(items + " out of " + total + " transactions have been imported");
                     }
-
 
 
                     // Hide the progress bar again
@@ -266,10 +267,10 @@ public class MainController {
                 "Export confirmation",
                 "There are still transactions that don't have a category. " +
                         "Are you sure you want to export them as they are?");
-        if(noEmptyCategories() || alert.showAndWait().isPresent() && alert.getResult() == ButtonType.OK) {
+        if (noEmptyCategories() || alert.showAndWait().isPresent() && alert.getResult() == ButtonType.OK) {
             boolean result = initialiseCsvRepository();
 
-            if(result) {
+            if (result) {
                 exportCsv();
                 commitToDatabase();
             }
@@ -280,7 +281,7 @@ public class MainController {
      * Add all imported transactions into the database
      */
     private void commitToDatabase() {
-        for(Transaction t: tableData) {
+        for (Transaction t : tableData) {
             try {
                 // All transactions are added to the database upon import so we update them instead of adding them
                 transactionSql.update(t);
@@ -295,7 +296,7 @@ public class MainController {
      */
     private void exportCsv() {
         // The repository should only be null if the user pressed cancel
-        if(csvRepository != null) {
+        if (csvRepository != null) {
             try {
                 // Add all table data to the repository
                 csvRepository.addAll(tableData);
@@ -312,40 +313,43 @@ public class MainController {
 
     /**
      * Open a file chooser to select the location of the export file
+     *
      * @return It returns true if the user has selected a file and the repository has been successfully created
      */
     private boolean initialiseCsvRepository() {
-        // If the repository is null, the user has not used this option before, create a new database connection
-        if (csvRepository == null) {
-            FileChooser fileChooser = new FileChooser();
-            fileChooser.setTitle("Export to CSV");
-            fileChooser.setSelectedExtensionFilter(new FileChooser.ExtensionFilter("CSV file", "csv"));
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Export to CSV");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV file (*.csv)", "*.csv"));
 
-            File file = fileChooser.showSaveDialog(stage);
+        File file = fileChooser.showSaveDialog(stage);
 
-            if (file != null) {
-                // Append .csv extension to the file if the user has not already done it
-                String name = file.getName();
-                if (!name.endsWith(".csv")) {
-                    file = new File(file.getAbsolutePath() + " .csv");
+        if (file != null) {
+            // Append .csv extension to the file if the user has not already done it
+            String name = file.getName();
+            if (!name.endsWith(".csv")) {
+                file = new File(file.getAbsolutePath() + ".csv");
+            }
+
+            try {
+                Path path = Paths.get(file.getAbsolutePath());
+                if (csvRepository != null && csvRepository.getFilePath().equals(path)) {
+                    log.debug("Skipping initialising csv repository with the same path, nuking it instead");
+                    csvRepository.nuke();
+                } else {
+                    csvRepository = new CsvRepository(path);
                 }
+                
+                return true;
+            } catch (RepositoryInitialisationException | RepositoryDeleteException e) {
+                log.warn("Failed to initialise csv repository at: " + file.getAbsolutePath(), e);
 
-                try {
-                    csvRepository = new CsvRepository(file.getAbsolutePath());
-                    return true;
-                } catch (RepositoryInitialisationException e) {
-                    log.warn("Failed to initialise csv repository at: " + file.getAbsolutePath(), e);
-
-                    alertFactory.createError(
-                            "Export error",
-                            "There was an error while creating your csv file at " + file.getAbsolutePath()
-                    ).showAndWait();
-                }
-            } else {
-                log.info("User cancelled export");
+                alertFactory.createError(
+                        "Export error",
+                        "There was an error while creating your csv file at " + file.getAbsolutePath()
+                ).showAndWait();
             }
         } else {
-            return true;
+            log.info("User cancelled export");
         }
 
         return false;
@@ -353,6 +357,7 @@ public class MainController {
 
     /**
      * Returns whether or not there are still empty transactions that haven't been categorised
+     *
      * @return True if all transactions have categories assigned
      */
     private boolean noEmptyCategories() {
@@ -425,8 +430,8 @@ public class MainController {
                         getStyleClass().clear();
                         setText("");
 
-                        if(empty || item == null) {
-                            if(this.getTableRow().getItem() != null){
+                        if (empty || item == null) {
+                            if (this.getTableRow().getItem() != null) {
                                 setText("Set category");
                                 getStyleClass().add("no-category");
                             }
@@ -434,7 +439,7 @@ public class MainController {
                             setText(item.getTitle());
                             Transaction transaction = tableData.get(this.getIndex());
 
-                            if(transaction != null) {
+                            if (transaction != null) {
                                 switch (transaction.getConfidenceLevel()) {
                                     case NEED_CONFIRMATION:
                                         getStyleClass().add("need-confirmation");
@@ -457,7 +462,7 @@ public class MainController {
                     ClassifierDialog dialog = new ClassifierDialog(classifier, transaction);
                     dialog.showAndWait();
                     Category category = dialog.getResult();
-                    if(category != null) {
+                    if (category != null) {
                         transaction.setCategory(category);
                         transaction.setConfidenceLevel(ConfidenceLevel.USER_SET);
                         classifier.addModelItem(transaction);
@@ -485,7 +490,7 @@ public class MainController {
         int needConfirmation = 0;
 
         for (Transaction transaction : tableData) {
-            if(transaction.getCategory() == null) {
+            if (transaction.getCategory() == null) {
                 Optional<CategoryMatch> best = classifier.getBest(transaction);
                 if (best.isPresent()) {
                     CategoryMatch match = best.get();
@@ -508,23 +513,23 @@ public class MainController {
         }
 
         // Construct status messages
-        if(perfect > 0 || needConfirmation > 0) {
+        if (perfect > 0 || needConfirmation > 0) {
             String message = "";
 
-            if(perfect > 0) {
+            if (perfect > 0) {
                 message = perfect + " perfect match";
-                if(perfect != 1) {
+                if (perfect != 1) {
                     message += "es";
                 }
             }
 
-            if(perfect > 0 && needConfirmation > 0) {
+            if (perfect > 0 && needConfirmation > 0) {
                 message += " and ";
             }
 
-            if(needConfirmation > 0) {
+            if (needConfirmation > 0) {
                 message += needConfirmation + " possible match";
-                if(needConfirmation != 1) {
+                if (needConfirmation != 1) {
                     message += "es";
                 }
             }
@@ -534,7 +539,7 @@ public class MainController {
             lbStatus.setText(message);
         }
 
-        if(updated) {
+        if (updated) {
             transactionsTable.refresh();
         }
     }
