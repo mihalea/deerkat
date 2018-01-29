@@ -40,7 +40,7 @@ public class FuzzyClassifier extends AbstractClassifier{
 
         // Map containing the Category and a pair of integers containing the total score for that category and the number
         // of categories found in that category
-        Map<Category, Pair<Integer, Integer>> summed = new LinkedHashMap<>();
+        Map<Category, Pair<Integer, Integer>> summed = new HashMap<>();
 
         // Sum up all the matches and prepare to calculate the averages
         for (CategoryMatch match : filtered) {
@@ -64,7 +64,7 @@ public class FuzzyClassifier extends AbstractClassifier{
         }
 
         // Calculate the averages based on the sums
-        Map <Category, Integer> averaged = new LinkedHashMap<>();
+        Map <Category, Integer> averaged = new HashMap<>();
         for(Map.Entry<Category, Pair<Integer, Integer>> entry : summed.entrySet()) {
             Pair<Integer, Integer> count = entry.getValue();
             averaged.put(entry.getKey(), count.getKey() / count.getValue());
@@ -78,7 +78,7 @@ public class FuzzyClassifier extends AbstractClassifier{
 
         // Sort the list based on the similarity score
         sortedAveraged = sortedAveraged.stream()
-                .sorted(Comparator.comparingInt(CategoryMatch::getSimilarity))
+                .sorted(Comparator.comparingInt(CategoryMatch::getSimilarity).reversed())
                 .collect(Collectors.toList());
 
         log.debug("Found {} possible categories for {}", sortedAveraged.size(), item);

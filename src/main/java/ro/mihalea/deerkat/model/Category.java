@@ -9,7 +9,9 @@ import java.util.Objects;
  * Categories used to classify the transactions
  */
 @Builder
-@Data
+@Getter
+@Setter
+@ToString
 public class Category {
 
     /**
@@ -31,14 +33,13 @@ public class Category {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
         Category category = (Category) o;
-        return Objects.equals(id, category.id);
+        return id.equals(category.id);
     }
 
     @Override
     public int hashCode() {
 
-        return Objects.hash(super.hashCode(), id);
+        return Objects.hash(id, parentId);
     }
 }
