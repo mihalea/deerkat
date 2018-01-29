@@ -117,13 +117,14 @@ public class ClassifierController {
 
     /**
      * Analyse the current transaction and update the UI with the best matching categories
+     *
      * @param classifier
      */
     private void initialiseClassifier(AbstractClassifier classifier, Transaction transaction) {
         categoryProbabilities = classifier.getMatches(transaction);
         recommendedCategories.addAll(categoryProbabilities);
 
-        if(categoryProbabilities.size() <= 0) {
+        if (categoryProbabilities.size() <= 0) {
             lbRecommended.setManaged(false);
             lvRecommended.setManaged(false);
         } else {
@@ -137,9 +138,9 @@ public class ClassifierController {
             protected void updateItem(CategoryMatch item, boolean empty) {
                 super.updateItem(item, empty);
 
-                if(!empty && item != null) {
-                        String padded = String.format("%3d", item.getSimilarity());
-                        setText(padded + "% - " + item.getCategory().getTitle());
+                if (!empty && item != null) {
+                    String padded = String.format("%3d", item.getSimilarity());
+                    setText(padded + "% - " + item.getCategory().getTitle());
                 }
             }
         });
@@ -147,23 +148,34 @@ public class ClassifierController {
 
     /**
      * Add events for both list views that update the selected category
+     *
      * @param dialogPane Parent dialog pane
-     * @param button Confirmation button from the dialog
+     * @param button     Confirmation button from the dialog
      */
     private void initialiseSelectionModel(DialogPane dialogPane, ButtonType button) {
         // The two ListView should be mutually exclusive, so selecting an item in one should deselect all items in the other
         lvAll.getSelectionModel().selectedItemProperty()
                 .addListener((observable, oldValue, newValue) -> {
-                    selectedCategory = lvAll.getSelectionModel().getSelectedItem();
-                    lvRecommended.getSelectionModel().clearSelection();
-                    dialogPane.lookupButton(button).setDisable(false);
+                    // Check that a selection is already made to prevent bouncing between the two listeners
+                    if (lvAll.getSelectionModel().getSelectedItem() != null) {
+                        selectedCategory = lvAll.getSelectionModel().getSelectedItem();
+                        clearSelection(lvRecommended);
+                        dialogPane.lookupButton(button).setDisable(false);
+                    }
                 });
         lvRecommended.getSelectionModel().selectedItemProperty()
                 .addListener((observable, oldValue, newValue) -> {
-                    selectedCategory = lvRecommended.getSelectionModel().getSelectedItem().getCategory();
-                    lvAll.getSelectionModel().clearSelection();
-                    dialogPane.lookupButton(button).setDisable(false);
+                    // Check that a selection is already made to prevent bouncing between the two listeners
+                    if (lvRecommended.getSelectionModel().getSelectedItem() != null) {
+                        selectedCategory = lvRecommended.getSelectionModel().getSelectedItem().getCategory();
+                        clearSelection(lvAll);
+                        dialogPane.lookupButton(button).setDisable(false);
+                    }
                 });
+    }
+
+    private void clearSelection(ListView listView) {
+        listView.getSelectionModel().clearSelection(listView.getSelectionModel().getSelectedIndex());
     }
 
     /**
@@ -184,17 +196,17 @@ public class ClassifierController {
             protected void updateItem(Category item, boolean empty) {
                 super.updateItem(item, empty);
 
-                if(!empty && item != null) {
+                if (!empty && item != null) {
 
                     // Obtaining parent category
                     Optional<Category> parent = categories.stream()
                             .filter(c -> c.getId().equals(item.getParentId()))
                             .findFirst();
-                    if(!parent.isPresent()) {
+                    if (!parent.isPresent()) {
                         log.error("Failed to obtain parent category for :" + item);
                         setText("ERROR");
                     } else {
-                        setText(parent.get().getTitle()+ " > " + item.getTitle());
+                        setText(parent.get().getTitle() + " > " + item.getTitle());
                     }
 
 
@@ -205,6 +217,7 @@ public class ClassifierController {
 
     /**
      * Update labels holding transaction information with data from the current transaction
+     *
      * @param transaction Current transaction
      */
     private void updateTransactionLabels(Transaction transaction) {
