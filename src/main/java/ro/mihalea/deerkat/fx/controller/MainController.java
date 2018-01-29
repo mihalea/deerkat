@@ -1,17 +1,16 @@
 package ro.mihalea.deerkat.fx.controller;
 
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.Cursor;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.layout.Background;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import javafx.util.Callback;
 import javafx.util.Pair;
 import lombok.extern.log4j.Log4j2;
@@ -36,12 +35,9 @@ import ro.mihalea.deerkat.utility.HtmlProcessor;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.SQLException;
 import java.time.LocalDate;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -210,7 +206,6 @@ public class MainController {
                         lbStatus.setText(items + " out of " + total + " transactions have been imported");
                     }
 
-
                     // Hide the progress bar again
                     pbImport.setVisible(false);
                 }
@@ -269,7 +264,7 @@ public class MainController {
                 "Are you sure you want to discard the current transactions?"
         );
 
-        if(tableData.size() == 0 ||
+        if (tableData.size() == 0 ||
                 (confirmation.showAndWait().isPresent() && confirmation.getResult() == ButtonType.OK)) {
             try {
                 List<Transaction> transactions = transactionSql.getAll(categorySql);
@@ -398,6 +393,31 @@ public class MainController {
 
         initialiseTable();
         initialiseClassifier();
+        initialiseWindowListener();
+    }
+
+    private void initialiseWindowListener() {
+        stage.addEventHandler(WindowEvent.WINDOW_SHOWN, event -> {
+            try {
+                List<Transaction> withoutCategory = transactionSql.getAll(categorySql).stream()
+                        .filter(t -> t.getCategory() == null)
+                        .collect(Collectors.toList());
+
+                if (withoutCategory.size() > 0) {
+                    Alert alert = alertFactory.create(
+                            Alert.AlertType.CONFIRMATION,
+                            "Load previous transactions",
+                            "It appears that you've closed the application without categorising all transactions\n" +
+                                    "Do you want to continue working on them?");
+
+                    if (alert.showAndWait().isPresent() && alert.getResult() == ButtonType.OK) {
+                        tableData.addAll(withoutCategory);
+                    }
+                }
+            } catch (RepositoryReadException e) {
+                log.error("Failed to retrieve transactions", e);
+            }
+        });
     }
 
     /**
@@ -405,12 +425,11 @@ public class MainController {
      */
     private void initialiseClassifier() {
         try {
-            // Select only transaction that have been categorised
-            List<Transaction> transactions = transactionSql.getAll(categorySql).stream()
+            // Add only transaction that have been categorised
+            classifier.addModelList(transactionSql.getAll(categorySql).stream()
                     .filter(t -> t.getCategory() != null)
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toList()));
 
-            classifier.addModelList(transactions);
         } catch (RepositoryReadException e) {
             log.error("Failed to inject model data into the classifier", e);
             alertFactory.createError(
@@ -424,6 +443,12 @@ public class MainController {
      * Setup table columns and data bindings
      */
     private void initialiseTable() {
+        tableData.addListener((ListChangeListener<Transaction>) c -> {
+            if(c.next() && c.getAddedSize() > 0) {
+                searchMatches();
+            }
+        });
+
         tcPostingDate.setCellValueFactory(new PropertyValueFactory<>("postingDate"));
         tcTransactionDate.setCellValueFactory(new PropertyValueFactory<>("transactionDate"));
         tcDetails.setCellValueFactory(new PropertyValueFactory<>("details"));
@@ -478,7 +503,7 @@ public class MainController {
                         transaction.setCategory(category);
                         transaction.setConfidenceLevel(ConfidenceLevel.USER_SET);
                         classifier.addModelItem(transaction);
-                        searchPerfectMatches();
+                        searchMatches();
                         transactionsTable.refresh();
 
                         try {
@@ -500,7 +525,7 @@ public class MainController {
         transactionsTable.setItems(tableData);
     }
 
-    private void searchPerfectMatches() {
+    private void searchMatches() {
         boolean updated = false;
 
         // Count the number of transactions found that are a perfect match
@@ -513,19 +538,25 @@ public class MainController {
                 Optional<CategoryMatch> best = classifier.getBest(transaction);
                 if (best.isPresent()) {
                     CategoryMatch match = best.get();
-                    if (match.getSimilarity() > AbstractClassifier.AUTOMATIC_MATCH_VALUE) {
-                        classifier.addModelItem(transaction);
-                        transaction.setCategory(match.getCategory());
-                        transaction.setConfidenceLevel(ConfidenceLevel.PRETTY_SURE);
-                        updated = true;
-                        perfect++;
-                        log.info("Automatically matched {} with {}", transaction, match);
-                    } else if (match.getSimilarity() > AbstractClassifier.NEED_CONFIRMATION_VALUE) {
-                        transaction.setCategory(match.getCategory());
-                        transaction.setConfidenceLevel(ConfidenceLevel.NEED_CONFIRMATION);
-                        log.info("Confirmation needed for matching {} with {}", transaction, match);
-                        needConfirmation++;
-                        updated = true;
+                    try {
+                        if (match.getSimilarity() > AbstractClassifier.AUTOMATIC_MATCH_VALUE) {
+                            classifier.addModelItem(transaction);
+                            transaction.setCategory(match.getCategory());
+                            transaction.setConfidenceLevel(ConfidenceLevel.PRETTY_SURE);
+                            transactionSql.update(transaction);
+                            updated = true;
+                            perfect++;
+                            log.info("Automatically matched {} with {}", transaction, match);
+                        } else if (match.getSimilarity() > AbstractClassifier.NEED_CONFIRMATION_VALUE) {
+                            transaction.setCategory(match.getCategory());
+                            transaction.setConfidenceLevel(ConfidenceLevel.NEED_CONFIRMATION);
+                            transactionSql.update(transaction);
+                            log.info("Confirmation needed for matching {} with {}", transaction, match);
+                            needConfirmation++;
+                            updated = true;
+                        }
+                    } catch (RepositoryUpdateException e) {
+                        log.error("Failed to update transaction in the database: " + transaction, e);
                     }
                 }
             }
