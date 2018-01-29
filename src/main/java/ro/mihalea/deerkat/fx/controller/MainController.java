@@ -34,6 +34,7 @@ import ro.mihalea.deerkat.utility.HtmlProcessor;
 
 import java.io.File;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -245,6 +246,49 @@ public class MainController {
     protected void exportButton_Action() {
         log.info("User tries to export table data to CSV");
 
+        Alert alert = alertFactory.create(
+                Alert.AlertType.CONFIRMATION,
+                "Export confirmation",
+                "There are still transactions that don't have a category. " +
+                        "Are you sure you want to export them as they are?");
+        if(noEmptyCategories() || alert.showAndWait().isPresent() && alert.getResult() == ButtonType.OK) {
+            boolean result = initialiseCsvRepository();
+
+            if(result) {
+                exportCsv();
+            }
+        }
+
+
+
+
+    }
+
+    /**
+     * Export the data imported into csv format
+     */
+    public void exportCsv() {
+        // The repository should only be null if the user pressed cancel
+        if(csvRepository != null) {
+            try {
+                // Add all table data to the repository
+                csvRepository.addAll(tableData);
+            } catch (RepositoryCreateException e) {
+                log.warn("Failed to add items to the csv repository", e);
+
+                alertFactory.createError(
+                        "Export error",
+                        "Failed to add the transaction to you CSV file"
+                ).showAndWait();
+            }
+        }
+    }
+
+    /**
+     * Open a file chooser to select the location of the export file
+     * @return It returns true if the user has selected a file and the repository has been successfully created
+     */
+    public boolean initialiseCsvRepository() {
         // If the repository is null, the user has not used this option before, create a new database connection
         if (csvRepository == null) {
             FileChooser fileChooser = new FileChooser();
@@ -262,6 +306,7 @@ public class MainController {
 
                 try {
                     csvRepository = new CsvRepository(file.getAbsolutePath());
+                    return true;
                 } catch (RepositoryInitialisationException e) {
                     log.warn("Failed to initialise csv repository at: " + file.getAbsolutePath(), e);
 
@@ -273,22 +318,19 @@ public class MainController {
             } else {
                 log.info("User cancelled export");
             }
+        } else {
+            return true;
         }
 
-        // The repository should only be null if the user pressed cancel
-        if(csvRepository != null) {
-            try {
-                // Add all table data to the repository
-                csvRepository.addAll(tableData);
-            } catch (RepositoryCreateException e) {
-                log.warn("Failed to add items to the csv repository", e);
+        return false;
+    }
 
-                alertFactory.createError(
-                        "Export error",
-                        "Failed to add the transaction to you CSV file"
-                ).showAndWait();
-            }
-        }
+    /**
+     * Returns whether or not there are still empty transactions that haven't been categorised
+     * @return True if all transactions have categories assigned
+     */
+    public boolean noEmptyCategories() {
+        return tableData.stream().filter(td -> td.getCategory() == null).count() <= 0;
     }
 
     /**
