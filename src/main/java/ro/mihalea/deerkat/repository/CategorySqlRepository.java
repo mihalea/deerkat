@@ -52,6 +52,7 @@ public class CategorySqlRepository extends AbstractSqlRepository<Category>{
 
             ResultSet result = statement.executeQuery(queryString);
 
+            int count = 0;
             while(result.next()) {
                 Long id = result.getLong("id");
                 Long parentId = result.getLong("parentId");
@@ -70,10 +71,11 @@ public class CategorySqlRepository extends AbstractSqlRepository<Category>{
 
                 if(category != null) {
                     categories.add(category);
+                    count++;
                 }
             }
 
-            log.info("Database returned {} categories", result.getRow());
+            log.info("Database returned {} categories", count);
         } catch (SQLException e) {
             throw new RepositoryReadException("Failed to retrieve all categories", e);
         }

@@ -50,8 +50,14 @@ public abstract class AbstractSqlRepository<DataType> implements IRepository<Dat
      */
     public AbstractSqlRepository(String path) throws RepositoryConnectionException {
         try {
+            // If the database file does not exists the initialisation method needs to be run
+            boolean newDatabase = Files.notExists(Paths.get(path));
+
             connection = DriverManager.getConnection("jdbc:sqlite:" + path);
-            this.initialiseDatabase();
+
+            if(newDatabase) {
+                this.initialiseDatabase();
+            }
             log.info("Successfully connected to the repository at {}", path);
         } catch (SQLException | RepositoryInitialisationException e) {
             throw new RepositoryConnectionException("Failed to connect to the local repository", e);
@@ -86,7 +92,7 @@ public abstract class AbstractSqlRepository<DataType> implements IRepository<Dat
                     .filter(s -> !s.isEmpty())
                     .collect(Collectors.toList());
 
-            log.debug("Found {} configuration statements", validStatements.size());
+            log.debug("Running {} configuration statements", validStatements.size());
             // Execute every statement identified
             for(String statementString : validStatements) {
                 Statement statement = connection.createStatement();
@@ -134,7 +140,7 @@ public abstract class AbstractSqlRepository<DataType> implements IRepository<Dat
             String queryString = "DELETE FROM " + tableName;
             Statement statement = connection.createStatement();
             statement.executeUpdate(queryString);
-            log.info("Table {} has been nuked", tableName);
+            log.info("Table '{}' has been nuked", tableName);
         } catch (SQLException e) {
             throw new RepositoryDeleteException("Failed to delete " + tableName + " table", e);
         }

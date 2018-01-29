@@ -68,6 +68,7 @@ public class TransactionSqlRepository extends AbstractSqlRepository<Transaction>
             Statement statement = connection.createStatement();
 
             ResultSet resultSet = statement.executeQuery(queryString);
+            int count = 0;
             while(resultSet.next()) {
                 Long id = resultSet.getLong("id");
                 // Transform from SQL Date to a LocalDate by using epoch time
@@ -87,10 +88,11 @@ public class TransactionSqlRepository extends AbstractSqlRepository<Transaction>
 
                 if(transaction != null) {
                     transactions.add(transaction);
+                    count++;
                 }
             }
 
-            log.info("Database returned {} transactions", resultSet.getRow());
+            log.info("Database returned {} transactions", count);
         } catch (SQLException e) {
             throw new RepositoryReadException("Failed to retrieve all transactions", e);
         }
