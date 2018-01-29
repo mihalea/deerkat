@@ -258,16 +258,12 @@ public class MainController {
                 exportCsv();
             }
         }
-
-
-
-
     }
 
     /**
      * Export the data imported into csv format
      */
-    public void exportCsv() {
+    private void exportCsv() {
         // The repository should only be null if the user pressed cancel
         if(csvRepository != null) {
             try {
@@ -288,7 +284,7 @@ public class MainController {
      * Open a file chooser to select the location of the export file
      * @return It returns true if the user has selected a file and the repository has been successfully created
      */
-    public boolean initialiseCsvRepository() {
+    private boolean initialiseCsvRepository() {
         // If the repository is null, the user has not used this option before, create a new database connection
         if (csvRepository == null) {
             FileChooser fileChooser = new FileChooser();
@@ -329,7 +325,7 @@ public class MainController {
      * Returns whether or not there are still empty transactions that haven't been categorised
      * @return True if all transactions have categories assigned
      */
-    public boolean noEmptyCategories() {
+    private boolean noEmptyCategories() {
         return tableData.stream().filter(td -> td.getCategory() == null).count() <= 0;
     }
 
