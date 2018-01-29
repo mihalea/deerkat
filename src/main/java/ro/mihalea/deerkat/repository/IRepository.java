@@ -12,35 +12,27 @@ import java.util.Optional;
 /**
  * Basic repository interface used for handling objects
  * @param <ItemType> Type of the data stored in the repository
- * @param <KeyType> Type of the id used by the object
  */
-public interface IRepository<ItemType, KeyType> {
+public interface IRepository<ItemType> {
     /**
      * Add a new object to the database
      * @param itemType Object to be added to the database
      */
-    Optional<KeyType> add(ItemType itemType) throws RepositoryCreateException;
+    Optional<Long> add(ItemType itemType) throws RepositoryCreateException;
 
     /**
      * Add multiple object to the database
      * @param list List of objects to be added to the database
      */
-    default List<Optional<KeyType>> addAll(Iterable<ItemType> list) throws RepositoryCreateException {
-        List<Optional<KeyType>> keys = new ArrayList<>();
+    default List<Optional<Long>> addAll(Iterable<ItemType> list) throws RepositoryCreateException {
+        List<Optional<Long>> keys = new ArrayList<>();
         for(ItemType item : list) {
-            Optional<KeyType> key = this.add(item);
+            Optional<Long> key = this.add(item);
             keys.add(key);
         }
 
         return keys;
     }
-
-    /**
-     * Get a single object from the database using its ID
-     * @param key ID of the requested object
-     * @return Object with the same ID
-     */
-    ItemType getById(KeyType key) throws UnimplementedMethodException;
 
     /**
      * Get all the objects found in the database

@@ -1,6 +1,7 @@
 package ro.mihalea.deerkat.model;
 
 import lombok.*;
+import ro.mihalea.deerkat.classifier.ConfidenceLevel;
 
 import java.time.LocalDate;
 
@@ -10,7 +11,7 @@ public class Transaction {
     /**
      * Unique id that identifies the transaction in the repository
      */
-    private int id;
+    private Long id;
 
     /**
      * Date when the transaction was received by the bank
@@ -34,8 +35,17 @@ public class Transaction {
     /**
      * Amount of money transferred
      */
-    private @NonNull double amount;
+    private @NonNull Double amount;
 
+    /**
+     * Category that the transaction is part of
+     */
+    private Category category;
 
+    /**
+     * Marks whether the confidence in the matched category is not high enough to mark it automatically
+     * Default is: ConfidenceLevel.NONE
+     */
+    @Builder.Default private transient ConfidenceLevel confidenceLevel = ConfidenceLevel.NONE;
 }
 

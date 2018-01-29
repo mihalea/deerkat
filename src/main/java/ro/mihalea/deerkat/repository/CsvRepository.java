@@ -21,7 +21,7 @@ import java.util.Optional;
  * CsvRepository is used to create CSV files and to read from them
  */
 @Log4j2
-public class CsvRepository implements IRepository<Transaction, Integer> {
+public class CsvRepository implements IRepository<Transaction> {
     /**
      * Field used to convert LocalDates to and from String
      */
@@ -73,7 +73,7 @@ public class CsvRepository implements IRepository<Transaction, Integer> {
     }
 
     @Override
-    public Optional<Integer> add(Transaction transaction) throws RepositoryCreateException {
+    public Optional<Long> add(Transaction transaction) throws RepositoryCreateException {
         try {
             Files.write(filePath, this.toCSV(transaction).getBytes(), StandardOpenOption.APPEND);
             log.info("Add transaction: " + transaction);
@@ -81,11 +81,6 @@ public class CsvRepository implements IRepository<Transaction, Integer> {
         } catch (IOException e) {
             throw new RepositoryCreateException("Failed to write the transaction to the file: " + transaction, e);
         }
-    }
-
-    @Override
-    public Transaction getById(Integer key) throws UnimplementedMethodException {
-        throw new UnimplementedMethodException("GetById is not implemented");
     }
 
     @Override

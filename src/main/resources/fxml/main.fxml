@@ -9,7 +9,7 @@
 <?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
 
-<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8.0.121" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ro.mihalea.deerkat.fx.controller.MainController">
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/8.0.121" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ro.mihalea.deerkat.fx.controller.MainController">
    <center>
       <TableView id="transactionsTable" fx:id="transactionsTable" onMouseClicked="#transactionsTable_MouseClick" prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
         <columns>
@@ -17,7 +17,7 @@
           <TableColumn fx:id="tcTransactionDate" editable="false" maxWidth="150.0" minWidth="150.0" prefWidth="150.0" styleClass="columnRight" text="Transaction Date" />
             <TableColumn fx:id="tcDetails" editable="false" minWidth="50.0" prefWidth="150.0" text="Details" />
             <TableColumn fx:id="tcAmount" editable="false" maxWidth="200.0" minWidth="150.0" prefWidth="200.0" styleClass="columnRight" text="Amount" />
-            <TableColumn fx:id="tcCategory" minWidth="50.0" prefWidth="150.0" text="Category" />
+            <TableColumn id="category" fx:id="tcCategory" editable="false" minWidth="50.0" prefWidth="150.0" text="Category" />
         </columns>
          <columnResizePolicy>
             <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />

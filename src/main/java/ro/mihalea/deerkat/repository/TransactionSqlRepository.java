@@ -16,27 +16,26 @@ import java.util.Optional;
  * and manage transactions
  */
 @Log4j2
-public class TransactionSqlRepository extends AbstractSqlRepository<Transaction, Integer>{
+public class TransactionSqlRepository extends AbstractSqlRepository<Transaction>{
     /**
      * Field used to convert to and from SQL dates
      */
     private final TransactionDateConverter converter = new TransactionDateConverter();
 
     /**
-     * Initialise the repository and connect to the local repository at the specified file path
+     * Initialise the repository and connect to the local repository at the default file path
      *
-     * @param path Location of the repository file
      * @throws RepositoryConnectionException Failed to connect to the repository
      */
-    public TransactionSqlRepository(String path) throws RepositoryConnectionException {
-        super(path);
+    public TransactionSqlRepository() throws RepositoryConnectionException {
+        super();
     }
 
     /**
      * Add a new transaction to the repository
      * @param transaction New transaction to be added to the repository
      */
-    public Optional<Integer> add(Transaction transaction) throws RepositoryCreateException {
+    public Optional<Long> add(Transaction transaction) throws RepositoryCreateException {
         try {
             String createString = "INSERT INTO transactions (postingDate, transactionDate, details, amount)" +
                     "VALUES (?, ?, ?, ?)";
@@ -51,23 +50,10 @@ public class TransactionSqlRepository extends AbstractSqlRepository<Transaction,
             statement.executeUpdate();
             log.debug("Transaction added to repository: " + transaction);
 
-            ResultSet result = statement.getGeneratedKeys();
-            int key;
-            if(result != null && result.next()) {
-                key = result.getInt(1);
-                log.debug("Server returned KEY={} for {}", key, transaction);
-                return Optional.of(key);
-            } else {
-                throw new RepositoryCreateException("Server failed to return a primary key for " + transaction);
-            }
+            return this.extractId(statement);
         } catch (SQLException e) {
             throw new RepositoryCreateException("Failed to add the transaction to the database: " + transaction, e);
         }
-    }
-
-    @Override
-    public Transaction getById(Integer key) throws UnimplementedMethodException {
-        throw new UnimplementedMethodException("GetById is not implemented");
     }
 
     /**
@@ -82,14 +68,13 @@ public class TransactionSqlRepository extends AbstractSqlRepository<Transaction,
             Statement statement = connection.createStatement();
 
             ResultSet resultSet = statement.executeQuery(queryString);
-            log.info("Query returned {} rows", resultSet.getFetchSize());
             while(resultSet.next()) {
-                int id = resultSet.getInt("id");
+                Long id = resultSet.getLong("id");
                 // Transform from SQL Date to a LocalDate by using epoch time
                 LocalDate postingDate = converter.fromSQL(resultSet.getDate("postingDate"));
                 LocalDate transactionDate = converter.fromSQL(resultSet.getDate("transactionDate"));
                 String details = resultSet.getString("details");
-                double amount = resultSet.getDouble("amount");
+                Double amount = resultSet.getDouble("amount");
 
                 // Build a new transaction using the generated builder and the fields above
                 Transaction transaction = Transaction.builder()
@@ -104,6 +89,8 @@ public class TransactionSqlRepository extends AbstractSqlRepository<Transaction,
                     transactions.add(transaction);
                 }
             }
+
+            log.info("Database returned {} transactions", resultSet.getRow());
         } catch (SQLException e) {
             throw new RepositoryReadException("Failed to retrieve all transactions", e);
         }
@@ -114,14 +101,8 @@ public class TransactionSqlRepository extends AbstractSqlRepository<Transaction,
 
     @Override
     public void nuke() throws RepositoryDeleteException {
-        try {
-            String queryString = "DELETE FROM transactions; DELETE FROM categories;";
-            Statement statement = connection.createStatement();
-            statement.executeUpdate(queryString);
-            log.info("Database has been nuked");
-        } catch (SQLException e) {
-            throw new RepositoryDeleteException("Failed to delete transactions table", e);
-        }
-
+        this.nukeTable("transactions");
     }
+
+
 }
