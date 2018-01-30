@@ -45,7 +45,5 @@ jfx {
     vendor = 'Mircea Mihalea'
     appName = 'Deerkat'
 
-    copyAdditionalAppResourcesToJar = true
-
     jfxMainAppJarName = "deerkat.jar"
 }
