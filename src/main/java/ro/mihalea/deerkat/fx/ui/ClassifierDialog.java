@@ -9,6 +9,7 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 import ro.mihalea.deerkat.fx.controller.ClassifierController;
 import ro.mihalea.deerkat.model.Category;
 import ro.mihalea.deerkat.model.Transaction;
@@ -24,7 +25,7 @@ public class ClassifierDialog extends Dialog<Category> {
      * Initialise the dialog with the transaction that needs to be classified
      * @param transaction Transaction that needs to be classified
      */
-    public ClassifierDialog(AbstractClassifier classifier, Transaction transaction) {
+    public ClassifierDialog(AbstractClassifier classifier, Transaction transaction, Window window) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getClassLoader().getResource("fxml/classifier.fxml"));
             Parent root = loader.load();
@@ -47,6 +48,7 @@ public class ClassifierDialog extends Dialog<Category> {
 
             Stage stage = (Stage) this.getDialogPane().getScene().getWindow();
             stage.getIcons().add(new Image(getClass().getClassLoader().getResourceAsStream("icons/deerkat.png")));
+            stage.initOwner(window);
 
             setResultConverter(buttonType -> {
                 if(buttonType.getButtonData() == ButtonBar.ButtonData.OK_DONE) {

@@ -1,6 +1,8 @@
 package ro.mihalea.deerkat.fx.ui;
 
 import javafx.scene.control.Alert;
+import javafx.stage.Modality;
+import javafx.stage.Window;
 import lombok.extern.log4j.Log4j2;
 
 /**
@@ -8,6 +10,12 @@ import lombok.extern.log4j.Log4j2;
  */
 @Log4j2
 public class AlertFactory {
+    /**
+     * Owner window which is used to center the dialog
+     */
+    private Window owner;
+
+
     /**
      * Create a new alert with the specified alert type, title and description and return it
      * @param alertType Describes the appearence of the dialog
@@ -21,6 +29,9 @@ public class AlertFactory {
         alert.setHeaderText(null);
         alert.setContentText(description);
 
+        alert.initModality(Modality.APPLICATION_MODAL);
+        alert.initOwner(owner);
+
         log.debug("Created new alert: ('" + title + "', '" + description + "'");
         return alert;
     }
@@ -33,5 +44,9 @@ public class AlertFactory {
      */
     public Alert createError(String title, String description) {
         return this.create(Alert.AlertType.ERROR, title, description);
+    }
+
+    public void setOwner(Window owner) {
+        this.owner = owner;
     }
 }

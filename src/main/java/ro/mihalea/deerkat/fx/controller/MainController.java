@@ -1,5 +1,6 @@
 package ro.mihalea.deerkat.fx.controller;
 
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -138,6 +139,20 @@ public class MainController {
             log.error("Failed to initialise a controller", e);
             System.exit(1);
         }
+    }
+
+    /**
+     * Initialise the table and set the stage
+     *
+     * @param stage Primary stage used in the window
+     */
+    public void initialise(Stage stage) {
+        this.stage = stage;
+
+        Platform.runLater(() -> alertFactory.setOwner(stage.getScene().getWindow()));
+        initialiseTable();
+        initialiseWindowListener();
+        initialiseClassifier();
     }
 
     /**
@@ -386,19 +401,6 @@ public class MainController {
         }
     }
 
-    /**
-     * Initialise the table and set the stage
-     *
-     * @param stage Primary stage used in the window
-     */
-    public void initialise(Stage stage) {
-        this.stage = stage;
-
-        initialiseTable();
-        initialiseClassifier();
-        initialiseWindowListener();
-    }
-
     private void initialiseWindowListener() {
         stage.addEventHandler(WindowEvent.WINDOW_SHOWN, event -> {
             try {
@@ -536,7 +538,7 @@ public class MainController {
                                 "Inflow transactions can't have their category changed"
                         ).showAndWait();
                     } else {
-                        ClassifierDialog dialog = new ClassifierDialog(classifier, transaction);
+                        ClassifierDialog dialog = new ClassifierDialog(classifier, transaction, stage.getScene().getWindow());
                         dialog.showAndWait();
                         Category category = dialog.getResult();
                         if (category != null) {
