@@ -36,6 +36,7 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -163,7 +164,7 @@ public class MainController {
                     // Reset the progress bar and display it
                     pbImport.setVisible(true);
 
-                    // Number of items processed sucessfully imported
+                    // Number of items successfully imported
                     int items = 0;
 
                     for (Transaction t : transactions) {
@@ -403,6 +404,7 @@ public class MainController {
             try {
                 List<Transaction> withoutCategory = transactionSql.getAll(categorySql).stream()
                         .filter(t -> t.getCategory() == null)
+                        .filter(t -> !t.getInflow())
                         .collect(Collectors.toList());
 
                 if (withoutCategory.size() > 0) {
@@ -442,12 +444,29 @@ public class MainController {
     }
 
     /**
+     * Produce a category string based on the transaction date for inflow transactions
+     *
+     * @param transaction Transaction which is an inflow
+     * @return String to be used as a category
+     */
+    public String getInflowCategory(Transaction transaction) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM");
+        LocalDate date = transaction.getTransactionDate();
+        return "Income for " + formatter.format(date);
+    }
+
+    /**
      * Setup table columns and data bindings
      */
     private void initialiseTable() {
         tableData.addListener((ListChangeListener<Transaction>) c -> {
-            if(c.next() && c.getAddedSize() > 0) {
-                searchMatches();
+            while (c.next()) {
+                if (c.wasAdded()) {
+                    log.debug("One or more items have been added to the table");
+                    for (Transaction t : c.getAddedSubList()) {
+                        searchMatches(t);
+                    }
+                }
             }
         });
 
@@ -472,9 +491,16 @@ public class MainController {
                         setTooltip(null);
 
                         if (empty || item == null) {
-                            if (this.getTableRow().getItem() != null) {
-                                setText("Set category");
-                                getStyleClass().add("no-category");
+                            Transaction transaction = (Transaction) this.getTableRow().getItem();
+                            if (transaction != null) {
+                                if (transaction.getInflow()) {
+                                    setText(getInflowCategory(transaction));
+                                    getStyleClass().add("inflow");
+                                    setTooltip(new Tooltip("Inflow transaction"));
+                                } else {
+                                    setText("Set category");
+                                    getStyleClass().add("no-category");
+                                }
                             }
                         } else {
                             setText(item.getTitle());
@@ -503,21 +529,29 @@ public class MainController {
                 cell.setOnMouseClicked(event -> {
                     Transaction transaction = (Transaction) cell.getTableRow().getItem();
 
-                    ClassifierDialog dialog = new ClassifierDialog(classifier, transaction);
-                    dialog.showAndWait();
-                    Category category = dialog.getResult();
-                    if (category != null) {
-                        transaction.setCategory(category);
-                        transaction.setConfidenceLevel(ConfidenceLevel.USER_SET);
-                        classifier.addModelItem(transaction);
-                        searchMatches();
-                        transactionsTable.refresh();
+                    if (transaction.getInflow()) {
+                        alertFactory.create(
+                                Alert.AlertType.INFORMATION,
+                                "Inflow transaction",
+                                "Inflow transactions can't have their category changed"
+                        ).showAndWait();
+                    } else {
+                        ClassifierDialog dialog = new ClassifierDialog(classifier, transaction);
+                        dialog.showAndWait();
+                        Category category = dialog.getResult();
+                        if (category != null) {
+                            transaction.setCategory(category);
+                            transaction.setConfidenceLevel(ConfidenceLevel.USER_SET);
+                            classifier.addModelItem(transaction);
+                            searchMatches();
+                            transactionsTable.refresh();
 
-                        try {
-                            transactionSql.update(transaction);
-                        } catch (RepositoryUpdateException e) {
-                            log.error("Failed to update transaction after categorisation: " + transaction, e);
-                            lbStatus.setText("Failed to update transaction in the database");
+                            try {
+                                transactionSql.update(transaction);
+                            } catch (RepositoryUpdateException e) {
+                                log.error("Failed to update transaction after categorisation: " + transaction, e);
+                                lbStatus.setText("Failed to update transaction in the database");
+                            }
                         }
                     }
                 });
@@ -532,10 +566,16 @@ public class MainController {
         transactionsTable.setItems(tableData);
     }
 
+    private void searchMatches() {
+        for (Transaction t : tableData) {
+            searchMatches(t);
+        }
+    }
+
     /**
      * Analyse the current data set and try to categorise them automatically
      */
-    private void searchMatches() {
+    private void searchMatches(Transaction transaction) {
         boolean updated = false;
 
         // Count the number of transactions found that are a perfect match
@@ -543,31 +583,29 @@ public class MainController {
         //Count the number of transactions found may need user confirmation
         int needConfirmation = 0;
 
-        for (Transaction transaction : tableData) {
-            if (transaction.getCategory() == null) {
-                Optional<CategoryMatch> best = classifier.getBest(transaction);
-                if (best.isPresent()) {
-                    CategoryMatch match = best.get();
-                    try {
-                        if (match.getSimilarity() > AbstractClassifier.AUTOMATIC_MATCH_VALUE) {
-                            classifier.addModelItem(transaction);
-                            transaction.setCategory(match.getCategory());
-                            transaction.setConfidenceLevel(ConfidenceLevel.PRETTY_SURE);
-                            transactionSql.update(transaction);
-                            updated = true;
-                            perfect++;
-                            log.info("Automatically matched {} with {}", transaction, match);
-                        } else if (match.getSimilarity() > AbstractClassifier.NEED_CONFIRMATION_VALUE) {
-                            transaction.setCategory(match.getCategory());
-                            transaction.setConfidenceLevel(ConfidenceLevel.NEED_CONFIRMATION);
-                            transactionSql.update(transaction);
-                            log.info("Confirmation needed for matching {} with {}", transaction, match);
-                            needConfirmation++;
-                            updated = true;
-                        }
-                    } catch (RepositoryUpdateException e) {
-                        log.error("Failed to update transaction in the database: " + transaction, e);
+        if (transaction.getCategory() == null) {
+            Optional<CategoryMatch> best = classifier.getBest(transaction);
+            if (best.isPresent()) {
+                CategoryMatch match = best.get();
+                try {
+                    if (match.getSimilarity() > AbstractClassifier.AUTOMATIC_MATCH_VALUE) {
+                        classifier.addModelItem(transaction);
+                        transaction.setCategory(match.getCategory());
+                        transaction.setConfidenceLevel(ConfidenceLevel.PRETTY_SURE);
+                        transactionSql.update(transaction);
+                        updated = true;
+                        perfect++;
+                        log.info("Automatically matched {} with {}", transaction, match);
+                    } else if (match.getSimilarity() > AbstractClassifier.NEED_CONFIRMATION_VALUE) {
+                        transaction.setCategory(match.getCategory());
+                        transaction.setConfidenceLevel(ConfidenceLevel.NEED_CONFIRMATION);
+                        transactionSql.update(transaction);
+                        log.info("Confirmation needed for matching {} with {}", transaction, match);
+                        needConfirmation++;
+                        updated = true;
                     }
+                } catch (RepositoryUpdateException e) {
+                    log.error("Failed to update transaction in the database: " + transaction, e);
                 }
             }
         }

@@ -4,7 +4,7 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
-public class TransactionDateConverter {
+public class LocalDateConverter {
     public LocalDate fromString(String date, String format) {
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern(format);
         return LocalDate.parse(date, dateFormatter);

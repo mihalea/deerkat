@@ -28,7 +28,7 @@ public class HtmlProcessor {
     /**
      * Field used to convert LocalDates to String when parsing
      */
-    private final TransactionDateConverter converter = new TransactionDateConverter();
+    private final LocalDateConverter converter = new LocalDateConverter();
 
     /**
      * Open an HTML file and try to extract transactions from it by scraping the document, and return the resulting
@@ -61,12 +61,12 @@ public class HtmlProcessor {
 
         for (Element row : tableRows) {
             Elements dataElements = row.select("td");
+            Transaction.TransactionBuilder builder = Transaction.builder();
 
             // If Cr is found in the last column it means that this transactions has added money to this account
-            // For what I want to use it, I only need the spendings, so this transaction is ignored
+            // Mark the transaction's inflow flag as true
             if (dataElements.get(dataElements.size() - 1).text().equals("Cr")) {
-                log.info("Ignoring inflow transaction: " + row.text());
-                continue;
+                builder.inflow(true);
             }
 
             // Remove the column which usually holds the "Cr" string which is not needed
@@ -79,7 +79,6 @@ public class HtmlProcessor {
                 String DATE_FORMAT = "MMMM d, yyyy";
 
                 int columnIndex = 0;
-                Transaction.TransactionBuilder builder = Transaction.builder();
                 for (Element data : dataElements) {
                     switch (columnIndex) {
                         // Transaction date column

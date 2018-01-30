@@ -4,7 +4,7 @@ import lombok.extern.log4j.Log4j2;
 import ro.mihalea.deerkat.exception.repository.*;
 import ro.mihalea.deerkat.model.Category;
 import ro.mihalea.deerkat.model.Transaction;
-import ro.mihalea.deerkat.utility.TransactionDateConverter;
+import ro.mihalea.deerkat.utility.LocalDateConverter;
 
 import java.sql.*;
 import java.time.LocalDate;
@@ -21,7 +21,7 @@ public class TransactionSqlRepository extends AbstractSqlRepository<Transaction>
     /**
      * Field used to convert to and from SQL dates
      */
-    private final TransactionDateConverter converter = new TransactionDateConverter();
+    private final LocalDateConverter converter = new LocalDateConverter();
 
     /**
      * Initialise the repository and connect to the local repository at the default file path
@@ -38,8 +38,8 @@ public class TransactionSqlRepository extends AbstractSqlRepository<Transaction>
      */
     public Optional<Long> add(Transaction transaction) throws RepositoryCreateException {
         try {
-            String createString = "INSERT INTO transactions (id, postingDate, transactionDate, details, amount)" +
-                    "VALUES (?, ?, ?, ?, ?)";
+            String createString = "INSERT INTO transactions (id, postingDate, transactionDate, details, amount, inflow)" +
+                    "VALUES (?, ?, ?, ?, ?, ?)";
 
             PreparedStatement statement = connection.prepareStatement(createString, Statement.RETURN_GENERATED_KEYS);
 
@@ -48,6 +48,7 @@ public class TransactionSqlRepository extends AbstractSqlRepository<Transaction>
             statement.setDate(3, converter.toSQL(transaction.getTransactionDate()));
             statement.setString(4, transaction.getDetails());
             statement.setDouble(5, transaction.getAmount());
+            statement.setBoolean(6, transaction.getInflow());
 
             statement.executeUpdate();
             log.debug("Transaction added to repository: " + transaction);
@@ -62,7 +63,7 @@ public class TransactionSqlRepository extends AbstractSqlRepository<Transaction>
     public void update(Transaction item) throws RepositoryUpdateException {
         try {
             String updateString = "UPDATE transactions  SET postingDate = ?, transactionDate = ?, " +
-                    "details = ?, amount = ?, categoryId = ? " +
+                    "details = ?, amount = ?, categoryId = ?, inflow = ? " +
                     "WHERE " +
                     "id = ?";
 
@@ -73,7 +74,8 @@ public class TransactionSqlRepository extends AbstractSqlRepository<Transaction>
             statement.setString(3, item.getDetails());
             statement.setDouble(4, item.getAmount());
             statement.setObject(5, item.getCategory() != null ? item.getCategory().getId() : null);
-            statement.setLong(6, item.getId());
+            statement.setBoolean(6, item.getInflow());
+            statement.setLong(7, item.getId());
 
             statement.executeUpdate();
             log.debug("Transaction has been updated: " + item);
@@ -87,7 +89,7 @@ public class TransactionSqlRepository extends AbstractSqlRepository<Transaction>
         List<Transaction> transactions = new ArrayList<>();
         try {
 
-            String queryString = "SELECT id, postingDate, transactionDate, details, amount, categoryId FROM transactions";
+            String queryString = "SELECT id, postingDate, transactionDate, details, amount, categoryId, inflow FROM transactions";
             Statement statement = connection.createStatement();
 
             ResultSet resultSet = statement.executeQuery(queryString);
@@ -99,6 +101,7 @@ public class TransactionSqlRepository extends AbstractSqlRepository<Transaction>
                 LocalDate transactionDate = converter.fromSQL(resultSet.getDate("transactionDate"));
                 String details = resultSet.getString("details");
                 Double amount = resultSet.getDouble("amount");
+                Boolean outflow = resultSet.getBoolean("inflow");
                 Category category = null;
 
                 // If the category repository is set and the id is not null try and retrieve the category from the db
@@ -119,6 +122,7 @@ public class TransactionSqlRepository extends AbstractSqlRepository<Transaction>
                         .details(details)
                         .amount(amount)
                         .category(category)
+                        .inflow(outflow)
                         .build();
 
                 if(transaction != null) {

@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   postingDate DATE NOT NULL,
   details VARCHAR(255) NOT NULL,
   amount DOUBLE NOT NULL,
+  inflow BOOLEAN NOT NULL,
   categoryId INTEGER,
   UNIQUE (transactionDate, postingDate, details, amount) ON CONFLICT ABORT,
   FOREIGN KEY (categoryId) REFERENCES categories(id)

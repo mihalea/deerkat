@@ -14,8 +14,12 @@
     -fx-background-color: #b9e7ff;
 }
 
-.user-set {
-    -fx-background-color: #c0ffa2;
+#transactionsTable .user-set {
+    -fx-background-color: #b0ffbe;
+}
+
+#transactionsTable .inflow {
+    -fx-background-color: #faffac;
 }
 
 #transactionsTable :selected .no-category {
@@ -35,6 +39,11 @@
 #transactionsTable :selected .user-set{
     -fx-background-color: #126b12;
     -fx-text-fill: #fff;
+}
+
+#transactionsTable :selected .inflow {
+    -fx-background-color: #a5a047;
+    -fx-text-fill: #ffffff;
 }
 
 #transactionsTable #category {

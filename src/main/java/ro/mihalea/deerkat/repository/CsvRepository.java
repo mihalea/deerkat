@@ -4,12 +4,11 @@ import lombok.extern.log4j.Log4j2;
 import ro.mihalea.deerkat.exception.repository.*;
 import ro.mihalea.deerkat.model.Category;
 import ro.mihalea.deerkat.model.Transaction;
-import ro.mihalea.deerkat.utility.TransactionDateConverter;
+import ro.mihalea.deerkat.utility.LocalDateConverter;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
 import java.util.List;
@@ -23,7 +22,7 @@ public class CsvRepository implements IRepository<Transaction> {
     /**
      * Field used to convert LocalDates to and from String
      */
-    private final TransactionDateConverter converter = new TransactionDateConverter();
+    private final LocalDateConverter converter = new LocalDateConverter();
 
     /**
      * Path to the CSV file used for writing and reading
@@ -139,7 +138,9 @@ public class CsvRepository implements IRepository<Transaction> {
     private String toCSV(Transaction transaction) {
         String category = "";
         try {
-            if (categoryRepository != null && transaction.getCategory() != null) {
+            if(transaction.getInflow()) {
+                category = "Income: Available this month";
+            } else if (categoryRepository != null && transaction.getCategory() != null) {
                 Category subCategory = transaction.getCategory();
                 Optional<Category> parentOptional = categoryRepository.getById(subCategory.getParentId());
                 if (parentOptional.isPresent()) {
@@ -155,9 +156,8 @@ public class CsvRepository implements IRepository<Transaction> {
                 transaction.getDetails() +
                 "," +
                 category +
-                ",," +
-                transaction.getAmount() +
                 "," +
+                String.format(transaction.getInflow() ? ",,%s" : ",%s,", transaction.getAmount()) +
                 System.lineSeparator());
     }
 

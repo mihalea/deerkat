@@ -38,6 +38,13 @@ public class Transaction {
     private @NonNull Double amount;
 
     /**
+     * Details whether the amount was deposited or withdrawn from the account
+     *
+     * True if the money has been withdrawn
+     */
+    private @Builder.Default @NonNull Boolean inflow = false;
+
+    /**
      * Category that the transaction is part of
      */
     private Category category;
@@ -46,6 +53,6 @@ public class Transaction {
      * Marks whether the confidence in the matched category is not high enough to mark it automatically
      * Default is: ConfidenceLevel.NONE
      */
-    @Builder.Default private transient ConfidenceLevel confidenceLevel = ConfidenceLevel.NONE;
+    private @Builder.Default transient ConfidenceLevel confidenceLevel = ConfidenceLevel.NONE;
 }
 
