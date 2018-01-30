@@ -1,9 +1,9 @@
 group 'ro.mihalea.deerkat'
-version '0.6-SNAPSHOT'
+version '1.0'
 
 apply plugin: 'java'
 
-sourceCompatibility = 1.9
+sourceCompatibility = 1.8
 
 
 
@@ -43,8 +43,7 @@ jfx {
     mainClass = 'ro.mihalea.deerkat.fx.ui.MainWindow'
 
     vendor = 'Mircea Mihalea'
-
-    copyAdditionalAppResourcesToJar = true
+    appName = 'Deerkat'
 
     jfxMainAppJarName = "deerkat.jar"
 }

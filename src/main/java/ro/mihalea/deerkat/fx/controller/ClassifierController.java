@@ -147,7 +147,7 @@ public class ClassifierController {
             });
         }
 
-        lvRecommended.setCellFactory(cell -> new ListCell<>() {
+        lvRecommended.setCellFactory(cell -> new ListCell<CategoryMatch>() {
             @Override
             protected void updateItem(CategoryMatch item, boolean empty) {
                 super.updateItem(item, empty);
@@ -205,7 +205,7 @@ public class ClassifierController {
         lvRecommended.setItems(recommendedCategories);
 
         // Add a custom cell renderer to retrieve the parent's title
-        lvAll.setCellFactory(param -> new ListCell<>() {
+        lvAll.setCellFactory(param -> new ListCell<Category>() {
             @Override
             protected void updateItem(Category item, boolean empty) {
                 super.updateItem(item, empty);

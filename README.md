@@ -7,3 +7,7 @@ Deerkat is an application written in Java that imports transaction data from sta
 - **v0.2:** Added storage in a local Sqlite database.
 - **v0.3:** Added storage in a local CSV file. This is not a lossless procedure as the CSV stores less data than extracted.
 - **v0.4:** Added a graphical user interface using JavaFx that allows users to import HTML files, view the data and export it to a CSV file
+
+# Credits
+
+Icon created from assets by [Freepik](http://www.freepik.com/) from [www.flaticon.com ](www.flaticon.com )

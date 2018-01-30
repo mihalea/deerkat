@@ -5,6 +5,7 @@ import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import ro.mihalea.deerkat.fx.controller.MainController;
 
@@ -14,6 +15,10 @@ import ro.mihalea.deerkat.fx.controller.MainController;
  * It has a table holding transactions, and buttons to import and export them.
  */
 public class MainWindow extends Application {
+    public static void main(String[] args) {
+        MainWindow.launch(args);
+    }
+
     @Override
     public void start(Stage primaryStage) throws Exception {
         FXMLLoader loader = new FXMLLoader(getClass().getClassLoader().getResource("fxml/main.fxml"));
@@ -28,6 +33,7 @@ public class MainWindow extends Application {
         controller.initialise(primaryStage);
 
         primaryStage.setTitle("Deerkat");
+        primaryStage.getIcons().add(new Image(getClass().getClassLoader().getResourceAsStream("icons/deerkat.png")));
         primaryStage.setScene(scene);
         primaryStage.show();
     }

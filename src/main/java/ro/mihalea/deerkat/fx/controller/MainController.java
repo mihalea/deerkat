@@ -154,7 +154,7 @@ public class MainController {
 
         if (file != null) {
             // If a file has been selected, parse it and add it to the table data
-            Task<Pair<Integer, Integer>> task = new Task<>() {
+            Task<Pair<Integer, Integer>> task = new Task<Pair<Integer, Integer>>() {
                 @Override
                 protected Pair<Integer, Integer> call() throws Exception {
 
@@ -455,10 +455,11 @@ public class MainController {
         tcAmount.setCellValueFactory(new PropertyValueFactory<>("amount"));
         tcCategory.setCellValueFactory(new PropertyValueFactory<>("category"));
 
-        tcCategory.setCellFactory(new Callback<>() {
+
+        tcCategory.setCellFactory(new Callback<TableColumn<Transaction, Category>, TableCell<Transaction, Category>>() {
             @Override
             public TableCell<Transaction, Category> call(TableColumn<Transaction, Category> param) {
-                TableCell<Transaction, Category> cell = new TableCell<>() {
+                TableCell<Transaction, Category> cell = new TableCell<Transaction, Category>() {
                     @Override
                     protected void updateItem(Category item, boolean empty) {
                         super.updateItem(item, empty);
@@ -498,7 +499,7 @@ public class MainController {
                 };
 
                 cell.setOnMouseClicked(event -> {
-                    Transaction transaction = cell.getTableRow().getItem();
+                    Transaction transaction = (Transaction) cell.getTableRow().getItem();
 
                     ClassifierDialog dialog = new ClassifierDialog(classifier, transaction);
                     dialog.showAndWait();
