@@ -5,6 +5,7 @@ import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import ro.mihalea.deerkat.fx.controller.MainController;
 
@@ -32,6 +33,7 @@ public class MainWindow extends Application {
         controller.initialise(primaryStage);
 
         primaryStage.setTitle("Deerkat");
+        primaryStage.getIcons().add(new Image(getClass().getClassLoader().getResourceAsStream("icons/deerkat.png")));
         primaryStage.setScene(scene);
         primaryStage.show();
     }
