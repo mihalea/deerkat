@@ -11,11 +11,11 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<DialogPane expanded="true" prefWidth="500.0" xmlns="http://javafx.com/javafx/8.0.121" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ro.mihalea.deerkat.fx.controller.ClassifierController">
+<DialogPane expanded="true" minHeight="200.0" minWidth="500.0" prefWidth="500.0" xmlns="http://javafx.com/javafx/8.0.121" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ro.mihalea.deerkat.fx.controller.ClassifierController">
    <content>
-      <BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
+      <BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0">
           <center>
-              <VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="200.0" minWidth="200.0" prefHeight="500.0" prefWidth="800.0">
+              <VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="100.0" minWidth="200.0" prefHeight="400.0" prefWidth="800.0">
                   <children>
                       <Label fx:id="lbRecommended" text="Recommended:">
                           <font>
@@ -46,7 +46,7 @@
               </VBox>
           </center>
          <top>
-            <VBox maxHeight="5000.0" prefWidth="100.0" BorderPane.alignment="CENTER">
+            <VBox maxHeight="5000.0" minHeight="100.0" prefWidth="100.0" BorderPane.alignment="CENTER">
                <children>
                       <Label text="Transaction:">
                           <font>
