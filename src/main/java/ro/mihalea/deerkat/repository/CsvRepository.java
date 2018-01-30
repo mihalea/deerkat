@@ -37,7 +37,7 @@ public class CsvRepository implements IRepository<Transaction> {
     /**
      * Date formated chosen to be compatible with the YNAB4 application
      */
-    private final String DATE_FORMAT = "MM/dd/yy";
+    private final String DATE_FORMAT = "dd/MM/yy";
 
     /**
      * Category repository used to resolve parent categories' title
