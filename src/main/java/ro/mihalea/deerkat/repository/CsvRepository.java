@@ -2,6 +2,7 @@ package ro.mihalea.deerkat.repository;
 
 import lombok.extern.log4j.Log4j2;
 import ro.mihalea.deerkat.exception.repository.*;
+import ro.mihalea.deerkat.model.Category;
 import ro.mihalea.deerkat.model.Transaction;
 import ro.mihalea.deerkat.utility.TransactionDateConverter;
 
@@ -40,30 +41,35 @@ public class CsvRepository implements IRepository<Transaction> {
     private final String DATE_FORMAT = "MM/dd/yy";
 
     /**
+     * Category repository used to resolve parent categories' title
+     */
+    private CategorySqlRepository categoryRepository;
+
+    /**
      * Construct the repository and check that the path is valid
+     *
      * @param csvLocation Path to the csv file
      */
     public CsvRepository(Path csvLocation) throws RepositoryInitialisationException {
         this.filePath = csvLocation;
 
-        if(Files.exists(filePath)) {
-            // If the file exists check that it is a regular files, and that it's readable and writeable
-            if (!Files.isRegularFile(filePath)) {
-                throw new RepositoryInitialisationException("The path provided does not lead to a regular file: " + csvLocation);
+        try {
+            if (Files.exists(filePath)) {
+                // If the file exists check that it is a regular files, and that it's readable and writeable
+                if (!Files.isRegularFile(filePath)) {
+                    throw new RepositoryInitialisationException("The path provided does not lead to a regular file: " + csvLocation);
+                }
+                if (!Files.isReadable(filePath)) {
+                    throw new RepositoryInitialisationException("The path provided does not lead to a readable file: " + csvLocation);
+                }
+                if (!Files.isWritable(filePath)) {
+                    throw new RepositoryInitialisationException("The path provided does not lead to a writeable file: " + csvLocation);
+                }
+
             }
-            if (!Files.isReadable(filePath)) {
-                throw new RepositoryInitialisationException("The path provided does not lead to a readable file: " + csvLocation);
-            }
-            if (!Files.isWritable(filePath)) {
-                throw new RepositoryInitialisationException("The path provided does not lead to a writeable file: " + csvLocation);
-            }
-        } else {
-            // If the file does not exist try to create it
-            try {
-                this.nuke();
-            } catch (RepositoryDeleteException e) {
-                throw new RepositoryInitialisationException("Failed to create a new database file", e);
-            }
+            this.nuke();
+        } catch (RepositoryDeleteException e) {
+            throw new RepositoryInitialisationException("Failed to create a new database file", e);
         }
 
         log.info("Initialised CSV Repository");
@@ -98,6 +104,7 @@ public class CsvRepository implements IRepository<Transaction> {
     @Override
     public void nuke() throws RepositoryDeleteException {
         try {
+            Files.delete(filePath);
             Files.write(filePath, HEADERS.getBytes());
             log.info("Created new CSV file at " + filePath.toString());
         } catch (IOException e) {
@@ -107,6 +114,7 @@ public class CsvRepository implements IRepository<Transaction> {
 
     /**
      * Convert from a line of CSV containing a transaction to a Transaction object
+     *
      * @param csv Line of CSV containing a transaction
      * @return Transaction object parsed from csv
      */
@@ -122,14 +130,30 @@ public class CsvRepository implements IRepository<Transaction> {
 
     /**
      * Convert from a Transaction object to a line of CSV
+     *
      * @param transaction Transaction to be formatted as CSV
      * @return String in CSV format storing a transaction
      */
     private String toCSV(Transaction transaction) {
+        String category = "";
+        try {
+            if (categoryRepository != null && transaction.getCategory() != null) {
+                Category subCategory = transaction.getCategory();
+                Optional<Category> parentOptional = categoryRepository.getById(subCategory.getParentId());
+                if (parentOptional.isPresent()) {
+                    category = parentOptional.get().getTitle() + ": " + subCategory.getTitle();
+                }
+            }
+        } catch (RepositoryReadException e) {
+            log.error("Failed to retrieve parent category");
+        }
+
         return String.valueOf(converter.toString(transaction.getTransactionDate(), DATE_FORMAT) +
                 "," +
                 transaction.getDetails() +
-                ",,," +
+                "," +
+                category +
+                ",," +
                 transaction.getAmount() +
                 "," +
                 System.lineSeparator());
@@ -137,5 +161,9 @@ public class CsvRepository implements IRepository<Transaction> {
 
     public Path getFilePath() {
         return filePath;
+    }
+
+    public void setCategoryRepository(CategorySqlRepository categoryRepository) {
+        this.categoryRepository = categoryRepository;
     }
 }

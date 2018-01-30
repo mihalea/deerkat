@@ -270,6 +270,7 @@ public class MainController {
                 List<Transaction> transactions = transactionSql.getAll(categorySql);
                 tableData.clear();
                 tableData.addAll(transactions);
+                exportButton.setDisable(false);
             } catch (RepositoryReadException e) {
                 log.error("Failed to import database transactions into the table", e);
                 alertFactory.createError("Error", "Failed to load previous transactions");
@@ -344,6 +345,7 @@ public class MainController {
                     csvRepository.nuke();
                 } else {
                     csvRepository = new CsvRepository(path);
+                    csvRepository.setCategoryRepository(categorySql);
                 }
 
                 return true;
