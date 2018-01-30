@@ -1,4 +1,4 @@
-package ro.mihalea.deerkat.fx.ui;
+package ro.mihalea.deerkat.ui.window;
 
 import javafx.scene.control.Alert;
 import javafx.stage.Modality;

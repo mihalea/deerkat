@@ -1,16 +1,14 @@
-package ro.mihalea.deerkat.fx.ui;
+package ro.mihalea.deerkat.ui.window;
 
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import javafx.stage.Window;
-import ro.mihalea.deerkat.fx.controller.ClassifierController;
+import ro.mihalea.deerkat.ui.controller.ClassifierController;
 import ro.mihalea.deerkat.model.Category;
 import ro.mihalea.deerkat.model.Transaction;
 import ro.mihalea.deerkat.classifier.AbstractClassifier;

@@ -1,4 +1,4 @@
-package ro.mihalea.deerkat.fx.controller;
+package ro.mihalea.deerkat.ui.controller;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -21,8 +21,9 @@ import ro.mihalea.deerkat.exception.model.TransactionParseException;
 import ro.mihalea.deerkat.exception.processor.FileNotFoundException;
 import ro.mihalea.deerkat.exception.processor.FileNotReadableException;
 import ro.mihalea.deerkat.exception.repository.*;
-import ro.mihalea.deerkat.fx.ui.AlertFactory;
-import ro.mihalea.deerkat.fx.ui.ClassifierDialog;
+import ro.mihalea.deerkat.ui.service.TableService;
+import ro.mihalea.deerkat.ui.window.AlertFactory;
+import ro.mihalea.deerkat.ui.window.ClassifierDialog;
 import ro.mihalea.deerkat.model.Category;
 import ro.mihalea.deerkat.model.Transaction;
 import ro.mihalea.deerkat.repository.CategorySqlRepository;
@@ -43,7 +44,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Controller for {@link ro.mihalea.deerkat.fx.ui.MainWindow}.
+ * Controller for {@link ro.mihalea.deerkat.ui.window.MainWindow}.
  */
 @Log4j2
 public class MainController {
@@ -78,15 +79,15 @@ public class MainController {
     private final AlertFactory alertFactory = new AlertFactory();
 
     /**
-     * List of Transactions stored in the table
-     */
-    private final ObservableList<Transaction> tableData = FXCollections.observableArrayList();
-
-    /**
      * JavaFX Table View used to display the transactions in a table
      */
     @FXML
     private TableView<Transaction> transactionsTable;
+
+    /**
+     * Service used to to manage a table view
+     */
+    private TableService table;
 
     /**
      * Table columns used to represent transactions
@@ -133,7 +134,6 @@ public class MainController {
             log.debug("Starting MainController");
             transactionSql = new TransactionSqlRepository();
             categorySql = new CategorySqlRepository();
-
             classifier = new FuzzyClassifier();
         } catch (RepositoryConnectionException e) {
             log.error("Failed to initialise a controller", e);
@@ -150,9 +150,15 @@ public class MainController {
         this.stage = stage;
 
         Platform.runLater(() -> alertFactory.setOwner(stage.getScene().getWindow()));
-        initialiseTable();
-        initialiseWindowListener();
+
+        initaliseTableService();
         initialiseClassifier();
+    }
+
+    private void initaliseTableService() {
+        table = new TableService(this, transactionsTable, alertFactory, transactionSql, categorySql, classifier);
+        table.setColumns(tcPostingDate, tcTransactionDate, tcDetails, tcAmount, tcCategory);
+        table.initialise();
     }
 
     /**
@@ -187,7 +193,7 @@ public class MainController {
                             Optional<Long> key = transactionSql.add(t);
                             if (key.isPresent()) {
                                 t.setId(key.get());
-                                tableData.add(t);
+                                table.add(t);
                                 items++;
                             } else {
                                 // A key should always be present, but catch this error anyways
@@ -219,7 +225,7 @@ public class MainController {
                         alertFactory.createError("Import", "No transactions have been imported. " +
                                 "They may already be in the database.").showAndWait();
                     } else {
-                        lbStatus.setText(items + " out of " + total + " transactions have been imported");
+                        updateStatus(items + " out of " + total + " transactions have been imported");
                     }
 
                     // Hide the progress bar again
@@ -280,12 +286,12 @@ public class MainController {
                 "Are you sure you want to discard the current transactions?"
         );
 
-        if (tableData.size() == 0 ||
+        if (table.isEmpty() ||
                 (confirmation.showAndWait().isPresent() && confirmation.getResult() == ButtonType.OK)) {
             try {
                 List<Transaction> transactions = transactionSql.getAll(categorySql);
-                tableData.clear();
-                tableData.addAll(transactions);
+                table.clear();
+                table.addAll(transactions);
                 exportButton.setDisable(false);
             } catch (RepositoryReadException e) {
                 log.error("Failed to import database transactions into the table", e);
@@ -306,7 +312,7 @@ public class MainController {
                 "Export confirmation",
                 "There are still transactions that don't have a category. " +
                         "Are you sure you want to export them as they are?");
-        if (noEmptyCategories() || alert.showAndWait().isPresent() && alert.getResult() == ButtonType.OK) {
+        if (!table.hasEmptyCategories() || alert.showAndWait().isPresent() && alert.getResult() == ButtonType.OK) {
             boolean result = initialiseCsvRepository();
 
             if (result) {
@@ -323,7 +329,7 @@ public class MainController {
         if (csvRepository != null) {
             try {
                 // Add all table data to the repository
-                csvRepository.addAll(tableData);
+                csvRepository.addAll(table.getAll());
             } catch (RepositoryCreateException e) {
                 log.warn("Failed to add items to the csv repository", e);
 
@@ -381,15 +387,6 @@ public class MainController {
     }
 
     /**
-     * Returns whether or not there are still empty transactions that haven't been categorised
-     *
-     * @return True if all transactions have categories assigned
-     */
-    private boolean noEmptyCategories() {
-        return tableData.stream().filter(td -> td.getCategory() == null).count() <= 0;
-    }
-
-    /**
      * Debug method used to check correct data associations between the view and the repositories
      */
     @FXML
@@ -399,31 +396,6 @@ public class MainController {
         if (transaction != null) {
             log.debug("Clicked on {}", transaction);
         }
-    }
-
-    private void initialiseWindowListener() {
-        stage.addEventHandler(WindowEvent.WINDOW_SHOWN, event -> {
-            try {
-                List<Transaction> withoutCategory = transactionSql.getAll(categorySql).stream()
-                        .filter(t -> t.getCategory() == null)
-                        .filter(t -> !t.getInflow())
-                        .collect(Collectors.toList());
-
-                if (withoutCategory.size() > 0) {
-                    Alert alert = alertFactory.create(
-                            Alert.AlertType.CONFIRMATION,
-                            "Load previous transactions",
-                            "It appears that you've closed the application without categorising all transactions\n" +
-                                    "Do you want to continue working on them?");
-
-                    if (alert.showAndWait().isPresent() && alert.getResult() == ButtonType.OK) {
-                        tableData.addAll(withoutCategory);
-                    }
-                }
-            } catch (RepositoryReadException e) {
-                log.error("Failed to retrieve transactions", e);
-            }
-        });
     }
 
     /**
@@ -446,203 +418,32 @@ public class MainController {
     }
 
     /**
-     * Produce a category string based on the transaction date for inflow transactions
-     *
-     * @param transaction Transaction which is an inflow
-     * @return String to be used as a category
+     * Update the label in the status bar, setting the text and making it red if it's displaying an error
+     * @param text Message to be displayed
+     * @param error Whether or not the message is meant to be an error
      */
-    public String getInflowCategory(Transaction transaction) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM");
-        LocalDate date = transaction.getTransactionDate();
-        return "Income for " + formatter.format(date);
-    }
-
-    /**
-     * Setup table columns and data bindings
-     */
-    private void initialiseTable() {
-        tableData.addListener((ListChangeListener<Transaction>) c -> {
-            while (c.next()) {
-                if (c.wasAdded()) {
-                    log.debug("One or more items have been added to the table");
-                    for (Transaction t : c.getAddedSubList()) {
-                        searchMatches(t);
-                    }
-                }
-            }
-        });
-
-        tcPostingDate.setCellValueFactory(new PropertyValueFactory<>("postingDate"));
-        tcTransactionDate.setCellValueFactory(new PropertyValueFactory<>("transactionDate"));
-        tcDetails.setCellValueFactory(new PropertyValueFactory<>("details"));
-        tcAmount.setCellValueFactory(new PropertyValueFactory<>("amount"));
-        tcCategory.setCellValueFactory(new PropertyValueFactory<>("category"));
-
-
-        tcCategory.setCellFactory(new Callback<TableColumn<Transaction, Category>, TableCell<Transaction, Category>>() {
-            @Override
-            public TableCell<Transaction, Category> call(TableColumn<Transaction, Category> param) {
-                TableCell<Transaction, Category> cell = new TableCell<Transaction, Category>() {
-                    @Override
-                    protected void updateItem(Category item, boolean empty) {
-                        super.updateItem(item, empty);
-
-
-                        getStyleClass().clear();
-                        setText("");
-                        setTooltip(null);
-
-                        if (empty || item == null) {
-                            Transaction transaction = (Transaction) this.getTableRow().getItem();
-                            if (transaction != null) {
-                                if (transaction.getInflow()) {
-                                    setText(getInflowCategory(transaction));
-                                    getStyleClass().add("inflow");
-                                    setTooltip(new Tooltip("Inflow transaction"));
-                                } else {
-                                    setText("Set category");
-                                    getStyleClass().add("no-category");
-                                }
-                            }
-                        } else {
-                            setText(item.getTitle());
-                            Transaction transaction = tableData.get(this.getIndex());
-
-                            if (transaction != null) {
-                                switch (transaction.getConfidenceLevel()) {
-                                    case NEED_CONFIRMATION:
-                                        getStyleClass().add("need-confirmation");
-                                        setTooltip(new Tooltip("Medium possibility of a correct match"));
-                                        break;
-                                    case PRETTY_SURE:
-                                        getStyleClass().add("pretty-sure");
-                                        setTooltip(new Tooltip("High possibility of a correct match"));
-                                        break;
-                                    case USER_SET:
-                                        getStyleClass().add("user-set");
-                                        setTooltip(new Tooltip("User-set category"));
-                                        break;
-                                }
-                            }
-                        }
-                    }
-                };
-
-                cell.setOnMouseClicked(event -> {
-                    Transaction transaction = (Transaction) cell.getTableRow().getItem();
-
-                    if (transaction.getInflow()) {
-                        alertFactory.create(
-                                Alert.AlertType.INFORMATION,
-                                "Inflow transaction",
-                                "Inflow transactions can't have their category changed"
-                        ).showAndWait();
-                    } else {
-                        ClassifierDialog dialog = new ClassifierDialog(classifier, transaction, stage.getScene().getWindow());
-                        dialog.showAndWait();
-                        Category category = dialog.getResult();
-                        if (category != null) {
-                            transaction.setCategory(category);
-                            transaction.setConfidenceLevel(ConfidenceLevel.USER_SET);
-                            classifier.addModelItem(transaction);
-                            searchMatches();
-                            transactionsTable.refresh();
-
-                            try {
-                                transactionSql.update(transaction);
-                            } catch (RepositoryUpdateException e) {
-                                log.error("Failed to update transaction after categorisation: " + transaction, e);
-                                lbStatus.setText("Failed to update transaction in the database");
-                            }
-                        }
-                    }
-                });
-
-                cell.setOnMouseEntered(event -> stage.getScene().setCursor(Cursor.HAND));
-                cell.setOnMouseExited(event -> stage.getScene().setCursor(Cursor.DEFAULT));
-
-                return cell;
-            }
-        });
-
-        transactionsTable.setItems(tableData);
-    }
-
-    private void searchMatches() {
-        for (Transaction t : tableData) {
-            searchMatches(t);
+    public void updateStatus(String text, boolean error) {
+        lbStatus.setText(text);
+        if(error) {
+            lbStatus.getStyleClass().add("status-error");
+        } else {
+            lbStatus.getStyleClass().clear();
         }
     }
 
     /**
-     * Analyse the current data set and try to categorise them automatically
+     * Update the label in the status bar to a normal message
+     * @param text Message to be displayed
      */
-    private void searchMatches(Transaction transaction) {
-        boolean updated = false;
-
-        // Count the number of transactions found that are a perfect match
-        int perfect = 0;
-        //Count the number of transactions found may need user confirmation
-        int needConfirmation = 0;
-
-        if (transaction.getCategory() == null) {
-            Optional<CategoryMatch> best = classifier.getBest(transaction);
-            if (best.isPresent()) {
-                CategoryMatch match = best.get();
-                try {
-                    if (match.getSimilarity() > AbstractClassifier.AUTOMATIC_MATCH_VALUE) {
-                        classifier.addModelItem(transaction);
-                        transaction.setCategory(match.getCategory());
-                        transaction.setConfidenceLevel(ConfidenceLevel.PRETTY_SURE);
-                        transactionSql.update(transaction);
-                        updated = true;
-                        perfect++;
-                        log.info("Automatically matched {} with {}", transaction, match);
-                    } else if (match.getSimilarity() > AbstractClassifier.NEED_CONFIRMATION_VALUE) {
-                        transaction.setCategory(match.getCategory());
-                        transaction.setConfidenceLevel(ConfidenceLevel.NEED_CONFIRMATION);
-                        transactionSql.update(transaction);
-                        log.info("Confirmation needed for matching {} with {}", transaction, match);
-                        needConfirmation++;
-                        updated = true;
-                    }
-                } catch (RepositoryUpdateException e) {
-                    log.error("Failed to update transaction in the database: " + transaction, e);
-                }
-            }
-        }
-
-        // Construct status messages
-        if (perfect > 0 || needConfirmation > 0) {
-            String message = "";
-
-            if (perfect > 0) {
-                message = perfect + " perfect match";
-                if (perfect != 1) {
-                    message += "es";
-                }
-            }
-
-            if (perfect > 0 && needConfirmation > 0) {
-                message += " and ";
-            }
-
-            if (needConfirmation > 0) {
-                message += needConfirmation + " possible match";
-                if (needConfirmation != 1) {
-                    message += "es";
-                }
-            }
-
-            message += " " + (perfect + needConfirmation == 1 ? "has" : "have") + " been found";
-
-            lbStatus.setText(message);
-        }
-
-        if (updated) {
-            transactionsTable.refresh();
-        }
+    public void updateStatus(String text) {
+        this.updateStatus(text, false);
     }
 
-
+    /**
+     * Return the stage for any services that may use but don't need to store it
+     * @return Main stage
+     */
+    public Stage getStage() {
+        return stage;
+    }
 }

@@ -40,7 +40,7 @@ buildscript {
 apply plugin: 'javafx-gradle-plugin'
 
 jfx {
-    mainClass = 'ro.mihalea.deerkat.fx.ui.MainWindow'
+    mainClass = 'ro.mihalea.deerkat.ui.window.MainWindow'
 
     vendor = 'Mircea Mihalea'
     appName = 'Deerkat'

@@ -1,9 +1,8 @@
-package ro.mihalea.deerkat.fx.controller;
+package ro.mihalea.deerkat.ui.controller;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.event.EventType;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.text.Font;
@@ -16,14 +15,12 @@ import ro.mihalea.deerkat.repository.CategorySqlRepository;
 import ro.mihalea.deerkat.classifier.AbstractClassifier;
 import ro.mihalea.deerkat.classifier.CategoryMatch;
 
-import javax.swing.event.HyperlinkEvent;
-import java.awt.event.WindowEvent;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Controller for {@link ro.mihalea.deerkat.fx.ui.ClassifierDialog}
+ * Controller for {@link ro.mihalea.deerkat.ui.window.ClassifierDialog}
  */
 @Log4j2
 public class ClassifierController {

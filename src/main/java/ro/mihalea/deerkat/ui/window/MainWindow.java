@@ -1,4 +1,4 @@
-package ro.mihalea.deerkat.fx.ui;
+package ro.mihalea.deerkat.ui.window;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -7,7 +7,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
-import ro.mihalea.deerkat.fx.controller.MainController;
+import ro.mihalea.deerkat.ui.controller.MainController;
 
 /**
  * Main window used to interface with the user.
