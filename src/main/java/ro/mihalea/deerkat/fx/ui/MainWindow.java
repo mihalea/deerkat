@@ -14,6 +14,10 @@ import ro.mihalea.deerkat.fx.controller.MainController;
  * It has a table holding transactions, and buttons to import and export them.
  */
 public class MainWindow extends Application {
+    public static void main(String[] args) {
+        MainWindow.launch(args);
+    }
+
     @Override
     public void start(Stage primaryStage) throws Exception {
         FXMLLoader loader = new FXMLLoader(getClass().getClassLoader().getResource("fxml/main.fxml"));

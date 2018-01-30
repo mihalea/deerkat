@@ -43,6 +43,7 @@ jfx {
     mainClass = 'ro.mihalea.deerkat.fx.ui.MainWindow'
 
     vendor = 'Mircea Mihalea'
+    appName = 'Deerkat'
 
     copyAdditionalAppResourcesToJar = true
 
