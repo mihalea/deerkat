@@ -2,10 +2,13 @@ package ro.mihalea.deerkat.fx.ui;
 
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
+import javafx.scene.image.Image;
+import javafx.stage.Stage;
 import ro.mihalea.deerkat.fx.controller.ClassifierController;
 import ro.mihalea.deerkat.model.Category;
 import ro.mihalea.deerkat.model.Transaction;
@@ -41,6 +44,9 @@ public class ClassifierDialog extends Dialog<Category> {
 
 
             controller.initialise(classifier, getDialogPane(), okay, transaction);
+
+            Stage stage = (Stage) this.getDialogPane().getScene().getWindow();
+            stage.getIcons().add(new Image(getClass().getClassLoader().getResourceAsStream("icons/deerkat.png")));
 
             setResultConverter(buttonType -> {
                 if(buttonType.getButtonData() == ButtonBar.ButtonData.OK_DONE) {

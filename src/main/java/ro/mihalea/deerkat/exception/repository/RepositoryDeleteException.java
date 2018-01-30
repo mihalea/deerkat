@@ -7,4 +7,8 @@ public class RepositoryDeleteException extends Exception {
     public RepositoryDeleteException(String s, Throwable throwable) {
         super(s, throwable);
     }
+
+    public RepositoryDeleteException(String message) {
+        super(message);
+    }
 }

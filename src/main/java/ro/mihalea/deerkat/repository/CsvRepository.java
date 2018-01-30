@@ -53,23 +53,11 @@ public class CsvRepository implements IRepository<Transaction> {
     public CsvRepository(Path csvLocation) throws RepositoryInitialisationException {
         this.filePath = csvLocation;
 
+        // Create a new file containing the table header and overwrite any preexisting files
         try {
-            if (Files.exists(filePath)) {
-                // If the file exists check that it is a regular files, and that it's readable and writeable
-                if (!Files.isRegularFile(filePath)) {
-                    throw new RepositoryInitialisationException("The path provided does not lead to a regular file: " + csvLocation);
-                }
-                if (!Files.isReadable(filePath)) {
-                    throw new RepositoryInitialisationException("The path provided does not lead to a readable file: " + csvLocation);
-                }
-                if (!Files.isWritable(filePath)) {
-                    throw new RepositoryInitialisationException("The path provided does not lead to a writeable file: " + csvLocation);
-                }
-
-            }
             this.nuke();
         } catch (RepositoryDeleteException e) {
-            throw new RepositoryInitialisationException("Failed to create a new database file", e);
+            throw new RepositoryInitialisationException("Failed to initialise repository", e);
         }
 
         log.info("Initialised CSV Repository");
@@ -104,7 +92,21 @@ public class CsvRepository implements IRepository<Transaction> {
     @Override
     public void nuke() throws RepositoryDeleteException {
         try {
-            Files.delete(filePath);
+            if (Files.exists(filePath)) {
+                // If the file exists check that it is a regular files, and that it's readable and writeable
+                if (!Files.isRegularFile(filePath)) {
+                    throw new RepositoryDeleteException("The path provided does not lead to a regular file: " + filePath);
+                }
+                if (!Files.isReadable(filePath)) {
+                    throw new RepositoryDeleteException("The path provided does not lead to a readable file: " + filePath);
+                }
+                if (!Files.isWritable(filePath)) {
+                    throw new RepositoryDeleteException("The path provided does not lead to a writeable file: " + filePath);
+                }
+
+
+                Files.delete(filePath);
+            }
             Files.write(filePath, HEADERS.getBytes());
             log.info("Created new CSV file at " + filePath.toString());
         } catch (IOException e) {
