@@ -171,7 +171,7 @@ public class MainController {
         // Open the file chooser dialog and let the user select an html file
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Open statement");
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("HTML file (*.html)", "*.html"));
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("HTML (*.html)", "*.html"));
         File file = fileChooser.showOpenDialog(stage);
 
         if (file != null) {
@@ -315,21 +315,27 @@ public class MainController {
         if (!table.hasEmptyCategories() || alert.showAndWait().isPresent() && alert.getResult() == ButtonType.OK) {
             boolean result = initialiseCsvRepository();
 
-            if (result) {
-                exportCsv();
+            // Due to short-circuiting the exportCsv statement does not execute if 'result' is false
+            if (result && exportCsv()) {
+                this.updateStatus("Successfully exported the selected transaction to '" +
+                        csvRepository.getFilePath().getFileName() +
+                        "'"
+                );
             }
         }
     }
 
     /**
      * Export the data imported into csv format
+     * @return Returns true if the export was a success
      */
-    private void exportCsv() {
+    private boolean exportCsv() {
         // The repository should only be null if the user pressed cancel
         if (csvRepository != null) {
             try {
                 // Add all table data to the repository
                 csvRepository.addAll(table.getAll());
+                return true;
             } catch (RepositoryCreateException e) {
                 log.warn("Failed to add items to the csv repository", e);
 
@@ -339,6 +345,8 @@ public class MainController {
                 ).showAndWait();
             }
         }
+
+        return false;
     }
 
     /**
@@ -349,7 +357,7 @@ public class MainController {
     private boolean initialiseCsvRepository() {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Export to CSV");
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV file (*.csv)", "*.csv"));
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Comma separated value (*.csv)", "*.csv"));
 
         File file = fileChooser.showSaveDialog(stage);
 
