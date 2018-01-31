@@ -3,8 +3,12 @@ package ro.mihalea.deerkat.ui.controller;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.Event;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.text.Font;
 import lombok.extern.log4j.Log4j2;
 import ro.mihalea.deerkat.exception.repository.RepositoryConnectionException;
@@ -15,8 +19,7 @@ import ro.mihalea.deerkat.repository.CategorySqlRepository;
 import ro.mihalea.deerkat.classifier.AbstractClassifier;
 import ro.mihalea.deerkat.classifier.CategoryMatch;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -105,16 +108,41 @@ public class ClassifierController {
     /**
      * Retrieve all possible categories and update the UI
      */
-    public void initialise(AbstractClassifier classifier, DialogPane dialogPane, ButtonType button, Transaction transaction) {
+    public void initialise(AbstractClassifier classifier, DialogPane dialogPane, ButtonType button, Transaction transaction, Button btnOkay, Button btnCancel) {
         try {
             updateTransactionLabels(transaction);
             loadFont();
+            initialiseKeyListeners(btnOkay, btnCancel);
             initialiseCells();
             initialiseSelectionModel(dialogPane, button);
             initialiseClassifier(classifier, transaction);
         } catch (RepositoryReadException e) {
             log.error("Failed to load categories into dialog", e);
         }
+    }
+
+    /**
+     * Handle enter and escape being pressed to accept the selection or close the window
+     * @param btnOkay Accept button
+     * @param btnCancel Cancel button
+     */
+    private void initialiseKeyListeners(Button btnOkay, Button btnCancel) {
+        EventHandler<KeyEvent> handler = event -> {
+            Object source = event.getSource();
+            ListView listView = null;
+            if(source instanceof ListView) {
+                    listView = (ListView) source;
+            }
+
+            // Avoid accepting input if not selection is made
+            if(event.getCode() == KeyCode.ENTER && listView != null && !listView.getSelectionModel().isEmpty()) {
+                btnOkay.fire();
+            } else if (event.getCode() == KeyCode.ESCAPE) {
+                btnCancel.fire();
+            }
+        };
+        lvRecommended.setOnKeyReleased(handler);
+        lvAll.setOnKeyReleased(handler);
     }
 
     /**
@@ -137,6 +165,10 @@ public class ClassifierController {
         if (categoryProbabilities.size() <= 0) {
             lbRecommended.setManaged(false);
             lvRecommended.setManaged(false);
+            Platform.runLater(() -> {
+                lvAll.requestFocus();
+                lvRecommended.getSelectionModel().selectFirst();
+            });
         } else {
             Platform.runLater(() -> {
                 lvRecommended.requestFocus();

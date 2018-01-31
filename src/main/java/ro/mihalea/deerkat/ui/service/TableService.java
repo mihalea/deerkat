@@ -7,6 +7,7 @@ import javafx.fxml.FXML;
 import javafx.scene.Cursor;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.KeyCode;
 import javafx.stage.WindowEvent;
 import javafx.util.Callback;
 import lombok.extern.log4j.Log4j2;
@@ -133,6 +134,22 @@ public class TableService {
     public void initialise() {
         initialiseColumns();
         initialiseModel();
+        initialiseKeyListener();
+    }
+
+    /**
+     * Enable users to open the classifier dialog by pressing enter on a selected transaction
+     */
+    private void initialiseKeyListener() {
+        table.setOnKeyReleased(ke -> {
+            if(ke.getCode() == KeyCode.ENTER && !table.getSelectionModel().isEmpty()) {
+                Transaction transaction = table.getSelectionModel().getSelectedItem();
+                // This should never be null, but have this sanity check
+                if(transaction != null) {
+                    handleCategoryClick(transaction);
+                }
+            }
+        });
     }
 
     /**
