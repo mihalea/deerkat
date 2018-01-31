@@ -32,7 +32,8 @@ public class AlertFactory {
         alert.initModality(Modality.APPLICATION_MODAL);
         alert.initOwner(owner);
 
-        log.debug("Created new alert: ('" + title + "', '" + description + "'");
+        //Log the message but strip any new lines from it
+        log.debug("Created new alert: ('" + title + "', '" + description.replace("\n", "") + "'");
         return alert;
     }
 

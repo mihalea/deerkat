@@ -47,7 +47,7 @@
       </HBox>
    </top>
    <bottom>
-      <HBox prefWidth="200.0" BorderPane.alignment="CENTER">
+      <HBox id="statusbar" prefWidth="200.0" BorderPane.alignment="CENTER">
          <children>
             <Label fx:id="lbStatus">
                <HBox.margin>
@@ -56,7 +56,7 @@
             </Label>
             <FlowPane alignment="CENTER_RIGHT" maxWidth="1.7976931348623157E308">
                <children>
-                  <ProgressBar fx:id="pbImport" prefWidth="200.0" progress="0.0" visible="false" />
+                  <ProgressBar fx:id="progressBar" prefWidth="200.0" progress="0.0" visible="false" />
                </children>
             </FlowPane>
          </children>

@@ -31,6 +31,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * Service used to control a JFX TableView and provide better encapsulation
+ */
 @Log4j2
 public class TableService {
     /**
@@ -64,6 +67,11 @@ public class TableService {
     private AbstractClassifier classifier;
 
     /**
+     * Service used to update the status bar
+     */
+    private StatusService statusService;
+
+    /**
      * Table view data model storing transactions
      */
     private ObservableList<Transaction> model = FXCollections.observableArrayList();
@@ -78,6 +86,7 @@ public class TableService {
     private TableColumn<Transaction, Category> tcCategory;
 
 
+
     /**
      * Create the table service needed to manage a TableView
      * @param controller MainController used to manage the FXML
@@ -87,13 +96,16 @@ public class TableService {
      * @param categorySql SQL Repository used to store categories
      * @param classifier Classifier used to suggest categories for transactions
      */
-    public TableService(MainController controller, TableView<Transaction> table, AlertFactory alertFactory, TransactionSqlRepository transactionSql, CategorySqlRepository categorySql, AbstractClassifier classifier) {
+    public TableService(MainController controller, TableView<Transaction> table, AlertFactory alertFactory,
+                        TransactionSqlRepository transactionSql, CategorySqlRepository categorySql,
+                        AbstractClassifier classifier, StatusService statusService) {
         this.controller = controller;
         this.table = table;
         this.alertFactory = alertFactory;
         this.transactionSql = transactionSql;
         this.categorySql = categorySql;
         this.classifier = classifier;
+        this.statusService = statusService;
     }
 
     /**
@@ -119,39 +131,8 @@ public class TableService {
      * Setup and initialise all variables that are need for this instance
      */
     public void initialise() {
-        initialiseWindowListener();
         initialiseColumns();
         initialiseModel();
-    }
-
-    /**
-     * Add window listeners to the table asking the user whether to reload previous transactions without a category
-     */
-    private void initialiseWindowListener() {
-        table.addEventHandler(WindowEvent.WINDOW_SHOWN, event -> {
-            try {
-                // Query all transactions without a category that are also not inflow
-                List<Transaction> withoutCategory = transactionSql.getAll(categorySql).stream()
-                        .filter(t -> t.getCategory() == null)
-                        .filter(t -> !t.getInflow())
-                        .collect(Collectors.toList());
-
-                // If any such transactions are found ask the user what he wants to do
-                if (withoutCategory.size() > 0) {
-                    Alert alert = alertFactory.create(
-                            Alert.AlertType.CONFIRMATION,
-                            "Load previous transactions",
-                            "It appears that you've closed the application without categorising all transactions\n" +
-                                    "Do you want to continue working on them?");
-
-                    if (alert.showAndWait().isPresent() && alert.getResult() == ButtonType.OK) {
-                        model.addAll(withoutCategory);
-                    }
-                }
-            } catch (RepositoryReadException e) {
-                log.error("Failed to retrieve transactions", e);
-            }
-        });
     }
 
     /**
@@ -228,7 +209,7 @@ public class TableService {
                     transactionSql.update(transaction);
                 } catch (RepositoryUpdateException e) {
                     log.error("Failed to update transaction after categorisation: " + transaction, e);
-                    controller.updateStatus("Failed to update transaction in the database", true);
+                    statusService.showError("Failed to update transaction in the database");
                 }
             }
         }
@@ -341,8 +322,10 @@ public class TableService {
 
         message += " " + (perfectMatch + needConfirmation == 1 ? "has" : "have") + " been found";
 
-        controller.updateStatus(message);
+        statusService.showMessage(message);
     }
+
+    //region CRUD Operations
 
     /**
      * Checks whether the table model has any transactions that don't have a category set
@@ -395,6 +378,20 @@ public class TableService {
     public List<Transaction> getAll() {
         return new ArrayList<>(model);
     }
+
+    /**
+     * Returns the currently selected item if a selection is made
+     * @return Optional that may contain a selected transaction
+     */
+    public Optional<Transaction> getSelected() {
+        Transaction transaction = table.getSelectionModel().getSelectedItem();
+        if(transaction != null) {
+            return Optional.of(transaction);
+        } else {
+            return Optional.empty();
+        }
+    }
+    //endregion
 
     /**
      * Class used to handle the styling of a table cell containing a category

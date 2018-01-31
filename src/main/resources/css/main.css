@@ -49,3 +49,7 @@
 #transactionsTable #category {
     -fx-alignment: CENTER;
 }
+
+#statusbar .status-error {
+    -fx-text-fill: #ff2e2e;
+}
