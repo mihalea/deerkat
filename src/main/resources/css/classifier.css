@@ -2,3 +2,11 @@
     -fx-font-family: "Source Code Pro";
     -fx-font-size: 1.25em;
 }
+
+.list-cell:hidden {
+    -fx-background-color: #ccaaa6;
+}
+
+.list-cell:selected:hidden {
+    -fx-background-color: #6a0c00;
+}

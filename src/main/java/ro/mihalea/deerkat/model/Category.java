@@ -29,6 +29,8 @@ public class Category {
      */
     private @NonNull String title;
 
+    private @Builder.Default @NonNull Boolean hidden = false;
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

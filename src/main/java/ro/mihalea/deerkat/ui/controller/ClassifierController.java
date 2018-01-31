@@ -3,23 +3,32 @@ package ro.mihalea.deerkat.ui.controller;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.css.PseudoClass;
+import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.text.Font;
 import lombok.extern.log4j.Log4j2;
 import ro.mihalea.deerkat.exception.repository.RepositoryConnectionException;
 import ro.mihalea.deerkat.exception.repository.RepositoryReadException;
+import ro.mihalea.deerkat.exception.repository.RepositoryUpdateException;
 import ro.mihalea.deerkat.model.Category;
 import ro.mihalea.deerkat.model.Transaction;
 import ro.mihalea.deerkat.repository.CategorySqlRepository;
 import ro.mihalea.deerkat.classifier.AbstractClassifier;
 import ro.mihalea.deerkat.classifier.CategoryMatch;
+import ro.mihalea.deerkat.ui.window.AlertFactory;
 
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -64,6 +73,12 @@ public class ClassifierController {
     private Label lbRecommended;
 
     /**
+     * Checkbox used to show hidden categories
+     */
+    @FXML
+    private CheckBox cbHidden;
+
+    /**
      * List holding categories that may be recommended to the user
      */
     private ObservableList<CategoryMatch> recommendedCategories = FXCollections.observableArrayList();
@@ -95,6 +110,17 @@ public class ClassifierController {
     private Category selectedCategory;
 
     /**
+     * Factory used to create alerts
+     */
+    private AlertFactory alertFactory = new AlertFactory();
+
+    /**
+     * Pseudo class used to mark hidden categories
+     */
+    private PseudoClass pseudo = PseudoClass.getPseudoClass("hidden");
+
+
+    /**
      * Initialise the controller by instantiating the repository and updating the categories
      */
     public ClassifierController() throws RepositoryConnectionException {
@@ -110,6 +136,9 @@ public class ClassifierController {
      */
     public void initialise(AbstractClassifier classifier, DialogPane dialogPane, ButtonType button, Transaction transaction, Button btnOkay, Button btnCancel) {
         try {
+            Platform.runLater(() -> alertFactory.setOwner(dialogPane.getScene().getWindow()));
+
+
             updateTransactionLabels(transaction);
             loadFont();
             initialiseKeyListeners(btnOkay, btnCancel);
@@ -122,27 +151,60 @@ public class ClassifierController {
     }
 
     /**
-     * Handle enter and escape being pressed to accept the selection or close the window
+     * Set up key listeners on the table views
      * @param btnOkay Accept button
      * @param btnCancel Cancel button
      */
     private void initialiseKeyListeners(Button btnOkay, Button btnCancel) {
-        EventHandler<KeyEvent> handler = event -> {
-            Object source = event.getSource();
-            ListView listView = null;
-            if(source instanceof ListView) {
-                    listView = (ListView) source;
-            }
+        lvRecommended.setOnKeyReleased(ke -> handleActionKeys(ke, btnOkay, btnCancel));
+        lvAll.setOnKeyReleased(ke -> {
+            handleActionKeys(ke, btnOkay, btnCancel);
 
-            // Avoid accepting input if not selection is made
-            if(event.getCode() == KeyCode.ENTER && listView != null && !listView.getSelectionModel().isEmpty()) {
-                btnOkay.fire();
-            } else if (event.getCode() == KeyCode.ESCAPE) {
-                btnCancel.fire();
+
+            if(ke.getCode() == KeyCode.DELETE && !lvAll.getSelectionModel().isEmpty()) {
+                Category category = lvAll.getSelectionModel().getSelectedItem();
+                if(category != null) {
+                    try {
+                        category.setHidden(!category.getHidden());
+                        repository.update(category);
+
+                        log.info("Category's 'hidden' is now {}: {}", category.getHidden(), category);
+                        if(category.getHidden() && !cbHidden.isSelected()) {
+                            allCategories.remove(category);
+                        }
+
+                        lvAll.refresh();
+                    } catch (RepositoryUpdateException e) {
+                        log.error("Failed to hide category " + category, e);
+                        alertFactory.createError(
+                                "Failed to hide",
+                                "An error occurred while trying to hide the category"
+                        ).showAndWait();
+                    }
+                }
             }
-        };
-        lvRecommended.setOnKeyReleased(handler);
-        lvAll.setOnKeyReleased(handler);
+        });
+    }
+
+    /**
+     * Handle key events pertaining to the ENTER and ESCAPE keys which are used to accept or cancel the dialog
+     * @param keyEvent Key event triggered
+     * @param btnOkay Accept button
+     * @param btnCancel Cancel button
+     */
+    private void handleActionKeys(KeyEvent keyEvent, Button btnOkay, Button btnCancel) {
+        Object source = keyEvent.getSource();
+        ListView listView = null;
+        if(source instanceof ListView) {
+            listView = (ListView) source;
+        }
+
+        // Avoid accepting input if not selection is made
+        if(keyEvent.getCode() == KeyCode.ENTER && listView != null && !listView.getSelectionModel().isEmpty()) {
+            btnOkay.fire();
+        } else if (keyEvent.getCode() == KeyCode.ESCAPE) {
+            btnCancel.fire();
+        }
     }
 
     /**
@@ -227,8 +289,14 @@ public class ClassifierController {
     private void initialiseCells() throws RepositoryReadException {
         categories = repository.getAll();
 
+        // List only non-hidden sub categories
+        List<Category> subCategories = categories.stream()
+                .filter(c -> c.getParentId() != null)
+                .filter(c -> !c.getHidden())
+                .collect(Collectors.toList());
+
         // Add only subcategories
-        allCategories.addAll(categories.stream().filter(c -> c.getParentId() != null).collect(Collectors.toList()));
+        allCategories.addAll(subCategories);
 
         lvAll.setItems(allCategories);
         lvRecommended.setItems(recommendedCategories);
@@ -249,10 +317,14 @@ public class ClassifierController {
                         log.error("Failed to obtain parent category for :" + item);
                         setText("ERROR");
                     } else {
+                        pseudoClassStateChanged(pseudo, item.getHidden());
                         setText(parent.get().getTitle() + " > " + item.getTitle());
                     }
 
 
+                } else {
+                    setText("");
+                    pseudoClassStateChanged(pseudo, false);
                 }
             }
         });
@@ -267,5 +339,32 @@ public class ClassifierController {
         lbDate.setText(transaction.getTransactionDate().toString());
         lbDetails.setText(transaction.getDetails());
         lbAmount.setText(Double.toString(transaction.getAmount()) + " AED");
+    }
+
+    @FXML
+    private void cbHidden_Action() {
+        Category selected = lvAll.getSelectionModel().getSelectedItem();
+        if(cbHidden.isSelected()) {
+            try {
+                allCategories.clear();
+                allCategories.addAll(repository.getAll().stream().filter(c -> c.getParentId() != null).collect(Collectors.toList()));
+                log.info("Showing hidden categories");
+                if(selected != null) {
+                    lvAll.getSelectionModel().select(selected);
+                    log.debug("{} was selected", selected);
+                }
+            } catch (RepositoryReadException e) {
+                log.error("Failed to show hidden categories", e);
+            }
+        } else {
+            List<Category> hidden = allCategories.filtered(Category::getHidden);
+            allCategories.removeAll(hidden);
+            if(selected != null && allCategories.contains(selected)) {
+                lvAll.getSelectionModel().select(selected);
+            }
+            log.info("Showing only non-hidden categories");
+        }
+
+        lvAll.refresh();
     }
 }

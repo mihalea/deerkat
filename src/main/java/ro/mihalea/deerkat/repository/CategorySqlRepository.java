@@ -28,12 +28,13 @@ public class CategorySqlRepository extends AbstractSqlRepository<Category>{
     @Override
     public Optional<Long> add(Category category) throws RepositoryCreateException {
         try {
-            String createString = "INSERT INTO category (parentId, title) VALUES (?, ?)";
+            String createString = "INSERT INTO category (parentId, title, hidden) VALUES (?, ?, ?)";
 
             PreparedStatement statement = connection.prepareStatement(createString, Statement.RETURN_GENERATED_KEYS);
 
             statement.setLong(1, category.getParentId());
             statement.setString(2, category.getTitle());
+            statement.setBoolean(3, category.getHidden());
 
             statement.executeUpdate();
 
@@ -49,7 +50,7 @@ public class CategorySqlRepository extends AbstractSqlRepository<Category>{
     public List<Category> getAll() throws RepositoryReadException {
         List<Category> categories = new ArrayList<>();
         try {
-            String queryString = "SELECT id, parentId, title FROM categories";
+            String queryString = "SELECT id, parentId, title, hidden FROM categories";
             Statement statement = connection.createStatement();
 
             ResultSet result = statement.executeQuery(queryString);
@@ -63,12 +64,14 @@ public class CategorySqlRepository extends AbstractSqlRepository<Category>{
                     parentId = null;
                 }
                 String title = result.getString("title");
+                Boolean hidden = result.getBoolean("hidden");
 
 
                 Category category = Category.builder()
                         .id(id)
                         .parentId(parentId)
                         .title(title)
+                        .hidden(hidden)
                         .build();
 
                 if(category != null) {
@@ -86,8 +89,22 @@ public class CategorySqlRepository extends AbstractSqlRepository<Category>{
     }
 
     @Override
-    public void update(Category category) throws RepositoryUpdateException, UnimplementedMethodException {
-        throw new UnimplementedMethodException("Update is not implemented");
+    public void update(Category category) throws RepositoryUpdateException {
+        try {
+            String update = "UPDATE categories SET parentId = ?, title = ?, hidden = ? WHERE id = ?";
+
+            PreparedStatement statement = connection.prepareStatement(update);
+
+            statement.setLong(1, category.getParentId());
+            statement.setString(2, category.getTitle());
+            statement.setBoolean(3, category.getHidden());
+            statement.setLong(4, category.getId());
+
+            statement.executeUpdate();
+            log.debug("Category has been updated: {}", category);
+        } catch (SQLException e) {
+            throw new RepositoryUpdateException("Failed to update category " + category, e);
+        }
     }
 
     @Override

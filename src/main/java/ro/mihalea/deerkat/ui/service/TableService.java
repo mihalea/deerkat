@@ -429,7 +429,7 @@ public class TableService {
                 if (transaction != null) {
                     if (transaction.getInflow()) {
                         /*
-                        For inflow transaction there is no category saved in the object so we have
+                        For inflow transactions there is no category saved in the object so we have
                         to always generate it based on the date
                         */
                         setText(getInflowCategory(transaction));
