@@ -176,6 +176,7 @@ public class MainController {
 
                     if (alert.showAndWait().isPresent() && alert.getResult() == ButtonType.OK) {
                         table.addAll(withoutCategory);
+                        exportButton.setDisable(false);
                     }
                 }
             } catch (RepositoryReadException e) {
@@ -209,7 +210,7 @@ public class MainController {
      */
     @FXML
     protected void importButton_Action() {
-        transfer.importFile(transactionSql, table);
+        transfer.importFile(transactionSql, table, () -> exportButton.setDisable(false));
     }
 
     /**

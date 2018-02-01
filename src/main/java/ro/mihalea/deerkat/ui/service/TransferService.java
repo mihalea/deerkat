@@ -84,7 +84,7 @@ public class TransferService {
      * @param repository Transaction repository used to save data on disk
      * @param table Table service used to insert transactions into the ui
      */
-    public void importFile(TransactionSqlRepository repository, TableService table) {
+    public void importFile(TransactionSqlRepository repository, TableService table, Runnable onSuccess) {
         log.info("User has begun the import action");
 
         // Open the file chooser dialog and let the user select an html file
@@ -129,6 +129,8 @@ public class TransferService {
                 @Override
                 protected void succeeded() {
                     statusService.displayProgress(false);
+
+                    onSuccess.run();
 
                     Pair<Integer, Integer> pair = this.getValue();
                     int successful = pair.getKey();
