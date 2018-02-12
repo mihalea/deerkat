@@ -350,7 +350,10 @@ public class TableService {
      * @return True if there is at least one transaction that doesn't have a category
      */
     public boolean hasEmptyCategories() {
-        return model.stream().filter(td -> td.getCategory() == null).count() >= 0;
+        return model.stream()
+                .filter(td -> td.getCategory() == null)
+                .filter(td -> !td.getInflow())
+                .count() >= 0;
     }
 
     /**
