@@ -11,11 +11,11 @@ public class ConfidenceLevel {
     /**
      * Probability is above a certain threshold and needs user confirmation
      */
-    public static int NEED_CONFIRMATION = 50;
+    public static int NEED_CONFIRMATION = 70;
     /**
      * Probability is above a certain threshold and doesn't need any user intervention
      */
-    public static int PRETTY_SURE = 70;
+    public static int PRETTY_SURE = 95;
     /**
      * The category has been set by the user and is 100% correct
      */

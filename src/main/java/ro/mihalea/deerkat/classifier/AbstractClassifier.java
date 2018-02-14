@@ -80,4 +80,9 @@ public abstract class AbstractClassifier {
 
         return details;
     }
+
+    /**
+     * Discard all training been done so far
+     */
+    public abstract void reset();
 }

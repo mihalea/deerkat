@@ -105,4 +105,9 @@ public class FuzzyClassifier extends AbstractClassifier{
 
         return sortedAveraged;
     }
+
+    @Override
+    public void reset() {
+        modelData.clear();
+    }
 }

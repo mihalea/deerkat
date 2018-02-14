@@ -41,4 +41,9 @@ public class NaiveClassifier extends AbstractClassifier{
         String sanitised = this.sanitiseDetails(transaction.getDetails());
         return Arrays.asList(sanitised.split("\\s"));
     }
+
+    @Override
+    public void reset() {
+        bayes.reset();
+    }
 }

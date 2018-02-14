@@ -58,4 +58,10 @@ public class CombinedClassifier extends AbstractClassifier {
                 .sorted(Comparator.comparingInt(CategoryMatch::getConfidence))
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public void reset() {
+        fuzzy.reset();
+        naive.reset();
+    }
 }
