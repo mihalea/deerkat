@@ -240,7 +240,7 @@ public class ClassifierController {
 
                 if (!empty && item != null) {
                     String padded = String.format("%3d", item.getConfidence());
-                    setText(padded + item.getCategory().getTitle());
+                    setText(padded + "% - " + item.getCategory().getTitle());
                 }
             }
         });

@@ -17,7 +17,7 @@ public class ClassifierAccuracyAnalyser {
     /**
      * Number of iterations that each classifier gets run through
      */
-    private final static int ITERATIONS = 100;
+    private final static int ITERATIONS = 250;
 
     /**
      * List of transactions used to check the accuracy of the classifier
