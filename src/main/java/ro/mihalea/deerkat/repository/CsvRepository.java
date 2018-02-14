@@ -13,6 +13,7 @@ import java.nio.file.StandardOpenOption;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * CsvRepository is used to create CSV files and to read from them
@@ -32,7 +33,7 @@ public class CsvRepository implements IRepository<Transaction> {
     /**
      * Table headers in CSV format containing field names as needed by YNAB4
      */
-    private final static String HEADERS = "Date,Payee,Category,Memo,Outflow,Inflow" + System.lineSeparator();
+    private final static String HEADERS = "Transaction ID,Date,Posting Date,Payee,Category Id,Category,Memo,Outflow,Inflow" + System.lineSeparator();
 
     /**
      * Date formated chosen to be compatible with the YNAB4 application
@@ -45,16 +46,28 @@ public class CsvRepository implements IRepository<Transaction> {
     private CategorySqlRepository categoryRepository;
 
     /**
-     * Construct the repository and check that the path is valid
+     * Construct the repository, and nuke the contents
      *
      * @param csvLocation Path to the csv file
      */
     public CsvRepository(Path csvLocation) throws RepositoryInitialisationException {
+        this(csvLocation, true);
+    }
+
+    /**
+     * Initialise the repository path and nuke the contents if needed
+     * @param csvLocation Path to the csv file
+     * @param delete Flag signalling whether all pre existent data from the repository should be deleted
+     * @throws RepositoryInitialisationException
+     */
+    public CsvRepository(Path csvLocation, boolean delete) throws RepositoryInitialisationException {
         this.filePath = csvLocation;
 
         // Create a new file containing the table header and overwrite any preexisting files
         try {
-            this.nuke();
+            if(delete) {
+                this.nuke();
+            }
         } catch (RepositoryDeleteException e) {
             throw new RepositoryInitialisationException("Failed to initialise repository", e);
         }
@@ -79,8 +92,27 @@ public class CsvRepository implements IRepository<Transaction> {
     }
 
     @Override
-    public List<Transaction> getAll() throws UnimplementedMethodException {
-        throw new UnimplementedMethodException("getAll is not implemented");
+    public List<Transaction> getAll() throws RepositoryReadException {
+        try {
+            List<Transaction> transactions =  Files.readAllLines(filePath).stream()
+                    .skip(1)
+                    .map(t -> {
+                        try {
+                            return this.fromCSV(t);
+                        } catch (RepositoryParseException | RepositoryReadException e) {
+                            log.error("Failed to parse transaction", e);
+                        }
+
+                        return null;
+                    })
+                    .collect(Collectors.toList());
+
+            log.info("User requested {} transactions from csv", transactions.size());
+
+            return transactions;
+        } catch (IOException e) {
+            throw new RepositoryReadException("Failed to read repository from " + filePath.toAbsolutePath().toString(), e);
+        }
     }
 
     @Override
@@ -119,14 +151,43 @@ public class CsvRepository implements IRepository<Transaction> {
      * @param csv Line of CSV containing a transaction
      * @return Transaction object parsed from csv
      */
-    private Transaction fromCSV(String csv) {
+    private Transaction fromCSV(String csv) throws RepositoryParseException, RepositoryReadException {
         String[] fields = csv.split(",");
 
-        return Transaction.builder()
-                .postingDate(converter.fromString(fields[0], DATE_FORMAT))
-                .transactionDate(converter.fromString(fields[1], DATE_FORMAT))
-                .details(fields[2])
-                .amount(Double.parseDouble(fields[3])).build();
+        Transaction.TransactionBuilder builder = Transaction.builder();
+
+        try {
+            builder.id(Long.parseLong(fields[0]))
+                    .transactionDate(converter.fromString(fields[1], DATE_FORMAT))
+                    .postingDate(converter.fromString(fields[2], DATE_FORMAT))
+                    .details(fields[3]);
+
+            String categoryString = fields[4];
+            if(!categoryString.trim().isEmpty()) {
+                long categoryId = Long.parseLong(categoryString);
+                categoryRepository.getById(categoryId).ifPresent(builder::category);
+            }
+
+            String outflow = fields[7];
+            String inflow = fields[8];
+            if(!outflow.trim().isEmpty()) {
+                builder.amount(Double.parseDouble(outflow));
+                builder.inflow(false);
+            } else if (!inflow.trim().isEmpty()) {
+                builder.amount(Double.parseDouble(inflow));
+                builder.inflow(true);
+            } else {
+                log.error("Both inflow and outflow are empty");
+                throw new RepositoryParseException("Failed to parse transaction amount for line: " + csv);
+            }
+
+
+        } catch (NumberFormatException e) {
+            log.error("Failed to parse object number for line: " + csv, e);
+        }
+
+
+        return builder.build();
     }
 
     /**
@@ -151,13 +212,19 @@ public class CsvRepository implements IRepository<Transaction> {
             log.error("Failed to retrieve parent category");
         }
 
-        return String.valueOf(converter.toString(transaction.getTransactionDate(), DATE_FORMAT) +
+        return transaction.getId() +
+                "," +
+                String.valueOf(converter.toString(transaction.getTransactionDate(), DATE_FORMAT) +
+                "," +
+                String.valueOf(converter.toString(transaction.getPostingDate(), DATE_FORMAT)) +
                 "," +
                 transaction.getDetails() +
                 "," +
+                (transaction.getCategory() != null ? transaction.getCategory().getId()  : " ") +
+                "," +
                 category +
                 "," +
-                String.format(transaction.getInflow() ? ",,%s" : ",%s,", transaction.getAmount()) +
+                String.format(transaction.getInflow() ? ", ,%s" : ",%s, ", transaction.getAmount()) +
                 System.lineSeparator());
     }
 
