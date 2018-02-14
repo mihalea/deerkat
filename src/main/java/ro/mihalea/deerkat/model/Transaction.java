@@ -49,10 +49,6 @@ public class Transaction {
      */
     private Category category;
 
-    /**
-     * Marks whether the confidence in the matched category is not high enough to mark it automatically
-     * Default is: ConfidenceLevel.NONE
-     */
-    private @Builder.Default transient ConfidenceLevel confidenceLevel = ConfidenceLevel.NONE;
+    private @Builder.Default Integer confidence = ConfidenceLevel.NONE;
 }
 

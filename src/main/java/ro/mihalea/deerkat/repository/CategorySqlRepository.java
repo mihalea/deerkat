@@ -25,6 +25,10 @@ public class CategorySqlRepository extends AbstractSqlRepository<Category>{
         super();
     }
 
+    public CategorySqlRepository(String path) throws RepositoryConnectionException {
+        super(path);
+    }
+
     @Override
     public Optional<Long> add(Category category) throws RepositoryCreateException {
         try {

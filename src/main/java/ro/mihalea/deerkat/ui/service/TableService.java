@@ -58,11 +58,6 @@ public class TableService {
     private TransactionSqlRepository transactionSql;
 
     /**
-     * Sql repository used to save categories to the disk
-     */
-    private CategorySqlRepository categorySql;
-
-    /**
      * Transaction classifier used to identity possible categories based on the details
      */
     private AbstractClassifier classifier;
@@ -104,7 +99,6 @@ public class TableService {
         this.table = table;
         this.alertFactory = alertFactory;
         this.transactionSql = transactionSql;
-        this.categorySql = categorySql;
         this.classifier = classifier;
         this.statusService = statusService;
     }
@@ -217,8 +211,8 @@ public class TableService {
             Category category = dialog.getResult();
             if (category != null) {
                 transaction.setCategory(category);
-                transaction.setConfidenceLevel(ConfidenceLevel.USER_SET);
-                classifier.addModelItem(transaction);
+                transaction.setConfidence(ConfidenceLevel.USER_SET);
+                classifier.learn(transaction);
                 searchMatches();
                 table.refresh();
 
@@ -264,47 +258,41 @@ public class TableService {
         //Count the number of transactions found may need user confirmation
         int needConfirmation = 0;
 
-        if (transaction.getCategory() == null) {
+        if(transaction.getConfidence() < ConfidenceLevel.USER_SET && !transaction.getInflow()) {
             Optional<CategoryMatch> best = classifier.getBest(transaction);
             if (best.isPresent()) {
                 CategoryMatch match = best.get();
                 try {
-                    if (match.getSimilarity() > AbstractClassifier.NEED_CONFIRMATION_VALUE) {
-                        // Similarity between NEED_CONFIRMATION_VALUE and MAXIMUM
+                    if (match.getConfidence() >= ConfidenceLevel.NEED_CONFIRMATION) {
+                        // Similarity between PRETTY_SURE and MAXIMUM
 
-                        if (match.getSimilarity() > AbstractClassifier.AUTOMATIC_MATCH_VALUE) {
+                        transaction.setConfidence(match.getConfidence());
+                        transaction.setCategory(match.getCategory());
+                        transactionSql.update(transaction);
+                        updated = true;
+
+                        if(match.getConfidence() >= ConfidenceLevel.PRETTY_SURE) {
                             // Similarity between AUTOMATIC_MATCH_VALUE and MAXIMUM
                             // Add this item to the classifier's data model as it's most certainly a good match,
                             // and skip this for NEED_CONFIRMATION matches as I don't want to have the classifier
                             // have the possibility of self training as it may lead to unforeseen effects
-                            classifier.addModelItem(transaction);
-
-                            transaction.setConfidenceLevel(ConfidenceLevel.PRETTY_SURE);
+                            classifier.learn(transaction);
                             log.info("Automatically matched {} with {}", transaction, match);
                             perfect++;
                         } else {
-                            // Similarity between NEED_CONFIRMATION_VALUE and AUTOMATIC_MATCH_VALUE
-                            transaction.setConfidenceLevel(ConfidenceLevel.NEED_CONFIRMATION);
-                            log.info("Confirmation needed for matching {} with {}", transaction, match);
                             needConfirmation++;
                         }
-
-                        transaction.setCategory(match.getCategory());
-                        transactionSql.update(transaction);
-                        updated = true;
                     }
                 } catch (RepositoryUpdateException e) {
                     log.error("Failed to update transaction in the database: " + transaction, e);
                 }
             }
+
+            if (updated) {
+                table.refresh();
+                displayAutoMatches(needConfirmation, perfect);
+            }
         }
-
-        if (updated) {
-            table.refresh();
-            displayAutoMatches(needConfirmation, perfect);
-        }
-
-
     }
 
     /**
@@ -449,19 +437,15 @@ public class TableService {
 
                 if (transaction != null) {
                     // Apply different styling classes and tooltips based on the confidence level of the match
-                    switch (transaction.getConfidenceLevel()) {
-                        case NEED_CONFIRMATION:
-                            getStyleClass().add("need-confirmation");
-                            setTooltip(new Tooltip("Medium possibility of a correct match"));
-                            break;
-                        case PRETTY_SURE:
-                            getStyleClass().add("pretty-sure");
-                            setTooltip(new Tooltip("High possibility of a correct match"));
-                            break;
-                        case USER_SET:
-                            getStyleClass().add("user-set");
-                            setTooltip(new Tooltip("User-set category"));
-                            break;
+                    if(transaction.getConfidence() >= ConfidenceLevel.USER_SET) {
+                        getStyleClass().add("user-set");
+                        setTooltip(new Tooltip("User-set category"));
+                    } else if (transaction.getConfidence() >= ConfidenceLevel.PRETTY_SURE) {
+                        getStyleClass().add("pretty-sure");
+                        setTooltip(new Tooltip("High possibility of a correct match"));
+                    } else if (transaction.getConfidence() >= ConfidenceLevel.NEED_CONFIRMATION) {
+                        getStyleClass().add("need-confirmation");
+                        setTooltip(new Tooltip("Medium possibility of a correct match"));
                     }
                 }
             }

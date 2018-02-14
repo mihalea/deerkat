@@ -8,6 +8,8 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import lombok.extern.log4j.Log4j2;
+import ro.mihalea.deerkat.classifier.CombinedClassifier;
+import ro.mihalea.deerkat.classifier.NaiveClassifier;
 import ro.mihalea.deerkat.exception.repository.*;
 import ro.mihalea.deerkat.ui.service.StatusService;
 import ro.mihalea.deerkat.ui.service.TableService;
@@ -125,9 +127,13 @@ public class MainController {
             transactionSql = new TransactionSqlRepository();
             categorySql = new CategorySqlRepository();
             classifier = new FuzzyClassifier();
+            //TODO: REMOVE ME PLS
+            transactionSql.nuke();
         } catch (RepositoryConnectionException e) {
             log.error("Failed to initialise a controller", e);
             System.exit(1);
+        } catch (RepositoryDeleteException e) {
+            e.printStackTrace();
         }
     }
 
@@ -191,7 +197,7 @@ public class MainController {
     private void initialiseClassifier() {
         try {
             // Add only transaction that have been categorised
-            classifier.addModelList(transactionSql.getAll(categorySql).stream()
+            classifier.learn(transactionSql.getAll(categorySql).stream()
                     .filter(t -> t.getCategory() != null)
                     .collect(Collectors.toList()));
 
@@ -260,7 +266,11 @@ public class MainController {
      */
     @FXML
     protected void transactionsTable_MouseClick() {
-        table.getSelected().ifPresent(t -> log.debug("Clicked on {}", t));
+        table.getSelected().ifPresent(t -> {
+            log.debug("Clicked on {}", t);
+            log.debug("Best match: {}", classifier.classify(t));
+        });
+
     }
 
     /**

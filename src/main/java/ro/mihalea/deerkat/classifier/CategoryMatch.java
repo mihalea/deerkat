@@ -11,5 +11,5 @@ import ro.mihalea.deerkat.model.Category;
  */
 public class CategoryMatch {
     private Category category;
-    private Integer similarity;
+    private Integer confidence;
 }

@@ -9,6 +9,7 @@ sourceCompatibility = 1.8
 
 repositories {
     mavenCentral()
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
@@ -24,6 +25,8 @@ dependencies {
     compile group: 'org.xerial', name: 'sqlite-jdbc', version: '3.21.0.1'
 
     compile 'me.xdrop:fuzzywuzzy:1.1.9'
+
+    compile group: 'com.github.ptnplanet', name: 'Java-Naive-Bayes-Classifier', version: '1.0.7'
 }
 
 

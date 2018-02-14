@@ -4,11 +4,7 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
-import javafx.event.ActionEvent;
-import javafx.event.Event;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
-import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -26,7 +22,6 @@ import ro.mihalea.deerkat.classifier.AbstractClassifier;
 import ro.mihalea.deerkat.classifier.CategoryMatch;
 import ro.mihalea.deerkat.ui.window.AlertFactory;
 
-import java.awt.*;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -221,7 +216,7 @@ public class ClassifierController {
      * @param classifier Classifier used to give predictions on the transaction category
      */
     private void initialiseClassifier(AbstractClassifier classifier, Transaction transaction) {
-        categoryProbabilities = classifier.getMatches(transaction);
+        categoryProbabilities = classifier.classify(transaction);
         recommendedCategories.addAll(categoryProbabilities);
 
         if (categoryProbabilities.size() <= 0) {
@@ -244,8 +239,8 @@ public class ClassifierController {
                 super.updateItem(item, empty);
 
                 if (!empty && item != null) {
-                    String padded = String.format("%3d", item.getSimilarity());
-                    setText(padded + "% - " + item.getCategory().getTitle());
+                    String padded = String.format("%3d", item.getConfidence());
+                    setText(padded + item.getCategory().getTitle());
                 }
             }
         });
