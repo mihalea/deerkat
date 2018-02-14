@@ -4,6 +4,8 @@ import lombok.extern.log4j.Log4j2;
 import ro.mihalea.deerkat.model.Transaction;
 
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Abstract class that outlines the action that a classifier should take.
@@ -13,59 +15,28 @@ import java.util.*;
 @Log4j2
 public abstract class AbstractClassifier {
     /**
-     * PERCENTAGE FROM WHICH TO HIDE MATCHES
-     */
-    protected final static int CUTOFF_VALUE = 50;
-
-    /**
-     * Value after which an automatic match is made
-     */
-    public final static int AUTOMATIC_MATCH_VALUE = 95;
-
-    /**
-     * Value after which the category is still set automatically but it will be displayed differently to the user
-     */
-    public final static int NEED_CONFIRMATION_VALUE = 75;
-
-    /**
      * Remove certain words from the list to improve matching
      */
-    protected final String[] BLACKLIST = new String[] {
+    private final List<String> BLACKLIST = Arrays.asList(
             "uae",
-            "abu dhabi",
+            "abu",
+            "dhabi",
             "llc",
             "are"
-    };
+    );
 
-    /**
-     * List of model data that will be used to calculate matches
-     */
-    protected List<Transaction> modelData = new ArrayList<>();
+    private final String DELIMITERS = Stream.of(
+            "-",
+            "/",
+            ",",
+            "\\s"
+    ).collect(Collectors.joining("|"));
 
-    /**
-     * Add a List to the model data to improve predictions
-     * @param data List of model data to be used
-     */
-    public void addModelList(List<Transaction> data) {
-        data.forEach(this::addModelItem);
-        log.debug("Added {} items to the model", data.size());
-    }
 
-    /**
-     * Add a single item to the model data to improve predictions, or update an item if one with the same id is found
-     * @param data Data added to the model
-     */
-    public void addModelItem(Transaction data) {
-        for (Transaction model : modelData) {
-            if(model.getId().equals(data.getId())) {
-                model.setCategory(data.getCategory());
-                log.debug("Model item has been updated to {}", model);
-                return;
-            }
-        }
+    public abstract void learn(Transaction transaction);
 
-        modelData.add(data);
-        log.debug("Model item has been added to the classifier: {}", data);
+    public void learn(List<Transaction> transactions) {
+        transactions.forEach(this::learn);
     }
 
     /**
@@ -75,7 +46,7 @@ public abstract class AbstractClassifier {
      * @param item Item that should be analysed to propose some categories
      * @return Map of categories and their probability that they match
      */
-    public abstract List<CategoryMatch> getMatches(Transaction item);
+    public abstract List<CategoryMatch> classify(Transaction item);
 
     /**
      * Get the the category that matches the current transaction the most if there are any above the cutoff value
@@ -83,7 +54,7 @@ public abstract class AbstractClassifier {
      * @return Best category if any above cutoff
      */
     public Optional<CategoryMatch> getBest(Transaction item) {
-        List<CategoryMatch> matches = getMatches(item);
+        List<CategoryMatch> matches = classify(item);
         if(matches.size() > 0) {
             return Optional.of(matches.get(0));
         } else {
@@ -93,18 +64,20 @@ public abstract class AbstractClassifier {
 
     /**
      * Transform the title to lowercase and remove any blacklisted words to remove variation in the matches
-     * @param title Category title
-     * @return Sanitized category title
+     * @param details Transaction details
+     * @return Sanitized transaction details
      */
-    protected String sanitizeTitle(String title) {
-        title = title.toLowerCase();
+    protected String sanitiseDetails(String details) {
+        details = details.toLowerCase();
 
-        for (String word : BLACKLIST) {
-            title = title.replace(word, "");
-        }
+        details = details.replaceAll("[^a-z\\s]", "");
 
-        title = title.replaceAll("[^a-z]", "");
+        details = Arrays.stream(details.split(DELIMITERS))
+                .filter(s -> s.length() > 1)
+                .filter(s -> !BLACKLIST.contains(s))
+                .collect(Collectors.joining(" "));
 
-        return title;
+
+        return details;
     }
 }

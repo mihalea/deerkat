@@ -3,21 +3,21 @@ package ro.mihalea.deerkat.classifier;
 /**
  * Confidence level of the categories used when drawing the UI
  */
-public enum ConfidenceLevel {
+public class ConfidenceLevel {
     /**
      * No category set
      */
-    NONE,
+    public static int NONE = 0;
     /**
-     * Probability is above {@link AbstractClassifier#NEED_CONFIRMATION_VALUE} and needs user confirmation
+     * Probability is above a certain threshold and needs user confirmation
      */
-    NEED_CONFIRMATION,
+    public static int NEED_CONFIRMATION = 50;
     /**
-     * Probability is above {@link AbstractClassifier#AUTOMATIC_MATCH_VALUE} and doesn't need any user intervention
+     * Probability is above a certain threshold and doesn't need any user intervention
      */
-    PRETTY_SURE,
+    public static int PRETTY_SURE = 70;
     /**
      * The category has been set by the user and is 100% correct
      */
-    USER_SET
+    public static int USER_SET = 100;
 }
