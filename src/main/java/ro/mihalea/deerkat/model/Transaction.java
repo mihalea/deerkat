@@ -49,6 +49,9 @@ public class Transaction {
      */
     private Category category;
 
+    /**
+     * Confidence level of the current category as an integer from 0..100
+     */
     private @Builder.Default Integer confidence = ConfidenceLevel.NONE;
 }
 

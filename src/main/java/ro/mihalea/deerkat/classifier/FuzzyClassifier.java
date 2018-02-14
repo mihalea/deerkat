@@ -21,6 +21,7 @@ public class FuzzyClassifier extends AbstractClassifier{
     @Override
     public void learn(Transaction transaction) {
         for (Transaction model : modelData) {
+            // If the transaction is already in the database, update it's category
             if(model.getId().equals(transaction.getId())) {
                 model.setCategory(transaction.getCategory());
                 log.debug("Model item has been updated to {}", model);
@@ -28,6 +29,7 @@ public class FuzzyClassifier extends AbstractClassifier{
             }
         }
 
+        // No transaction with the same id found in the database, adding it now
         modelData.add(transaction);
         log.debug("Model item has been added to the classifier: {}", transaction);
     }

@@ -25,6 +25,9 @@ public abstract class AbstractClassifier {
             "are"
     );
 
+    /**
+     * List of delimiters used to split the transaction details into tokens
+     */
     private final String DELIMITERS = Stream.of(
             "-",
             "/",
@@ -33,8 +36,16 @@ public abstract class AbstractClassifier {
     ).collect(Collectors.joining("|"));
 
 
+    /**
+     * Add the transaction to the learning database so that future predictions can be made more accurately
+     * @param transaction Transaction with a set category
+     */
     public abstract void learn(Transaction transaction);
 
+    /**
+     * Add multiple transaction to the learning database
+     * @param transactions List of transactions with categories set
+     */
     public void learn(List<Transaction> transactions) {
         transactions.forEach(this::learn);
     }
@@ -68,10 +79,13 @@ public abstract class AbstractClassifier {
      * @return Sanitized transaction details
      */
     protected String sanitiseDetails(String details) {
+        // Convert all characters to lowercase to reduce variation
         details = details.toLowerCase();
 
+        // Remove anything that's not a space or a letter
         details = details.replaceAll("[^a-z\\s]", "");
 
+        // Split into tokens and remove blacklisted words, and single characters
         details = Arrays.stream(details.split(DELIMITERS))
                 .filter(s -> s.length() > 1)
                 .filter(s -> !BLACKLIST.contains(s))
