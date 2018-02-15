@@ -11,7 +11,7 @@ public interface ReducerInterface {
     /**
      * Confidence level below which matches are ignored
      */
-    Integer CUT_OFF = 60;
+    Integer CUT_OFF = 62;
 
     /**
      * Reduce a list of matches with multiple instances of the same categories to a list of unique categories

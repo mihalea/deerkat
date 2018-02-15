@@ -29,7 +29,7 @@ public class FuzzyClassifier extends AbstractClassifier {
 
     /**
      * Default constructor using the best reducer available based on testing
-     *
+     * <p>
      * Currently it's using the {@link AverageReducer}
      */
     public FuzzyClassifier() {
@@ -38,6 +38,7 @@ public class FuzzyClassifier extends AbstractClassifier {
 
     /**
      * Initialise the classifier with the specified reducer
+     *
      * @param reducer Reducer used to process fuzzy matches
      */
     public FuzzyClassifier(ReducerInterface reducer) {
@@ -48,7 +49,7 @@ public class FuzzyClassifier extends AbstractClassifier {
     public void learn(Transaction transaction) {
         for (Transaction model : modelData) {
             // If the transaction is already in the database, update it's category
-            if(model.getId().equals(transaction.getId())) {
+            if (model.getId().equals(transaction.getId())) {
                 model.setCategory(transaction.getCategory());
                 log.debug("Model item has been updated to {}", model);
                 return;
@@ -62,24 +63,16 @@ public class FuzzyClassifier extends AbstractClassifier {
 
     @Override
     public List<CategoryMatch> classify(Transaction transaction) {
-        // Extract the details from the model data and sanitize the strings to remove noise
-        List<String> detailsList = modelData.stream()
-                .map(Transaction::getDetails)
-                .map(this::sanitiseDetails)
-                .collect(Collectors.toList());
+        String transactionDetails = this.sanitiseDetails(transaction.getDetails());
 
-
-        // Match the current category with previous ones
-        List<ExtractedResult> results = FuzzySearch.extractAll(
-                this.sanitiseDetails(transaction.getDetails()),
-                detailsList
-        );
-
-        // Construct a list of category matches based on model data and the scores of the fuzzy search
-        List<CategoryMatch> matches = new ArrayList<>();
-        for (int i = 0; i < results.size(); i++) {
-            matches.add(new CategoryMatch(modelData.get(i).getCategory(), results.get(i).getScore()));
-        }
+        List<CategoryMatch> matches = modelData.stream()
+                .map(t -> new CategoryMatch(
+                        t.getCategory(),
+                        FuzzySearch.tokenSortRatio(
+                                this.sanitiseDetails(t.getDetails()),
+                                transactionDetails
+                        )
+                )).collect(Collectors.toList());
 
         return reducer.reduce(matches);
     }

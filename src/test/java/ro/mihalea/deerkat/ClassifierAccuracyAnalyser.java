@@ -22,7 +22,7 @@ public class ClassifierAccuracyAnalyser {
     /**
      * Number of iterations that each classifier gets run through
      */
-    private final static int ITERATIONS = 5;
+    private final static int ITERATIONS = 1000;
 
     /**
      * List of transactions used to check the accuracy of the classifier
@@ -120,7 +120,7 @@ public class ClassifierAccuracyAnalyser {
                         badMatch += 1;
                         badAccuracy += best.getConfidence();
 
-                        System.out.println("BAD MATCH: " + transaction.getDetails());
+//                        System.out.println("BAD MATCH: " + transaction.getDetails());
 
                         for(CategoryMatch match : matchList) {
                             if(match.getCategory().equals(transaction.getCategory())) {

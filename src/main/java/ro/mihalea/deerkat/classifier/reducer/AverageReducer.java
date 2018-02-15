@@ -19,7 +19,7 @@ public class AverageReducer implements ReducerInterface {
         Map <Category, Integer> averaged = new HashMap<>();
         for(Map.Entry<Category, Pair<Integer, Integer>> entry : map.entrySet()) {
             Pair<Integer, Integer> count = entry.getValue();
-            averaged.put(entry.getKey(), count.getKey() / count.getValue() + (count.getValue() - 1));
+            averaged.put(entry.getKey(), count.getKey() / count.getValue());
         }
 
         // Prepare a list of CategoryMatches for sorting, creating new CategoryMatches from map entries
