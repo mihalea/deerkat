@@ -1,8 +1,14 @@
 package ro.mihalea.deerkat.ui.service;
 
+import javafx.application.Platform;
+import javafx.beans.Observable;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.SortedList;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.scene.Cursor;
 import javafx.scene.control.*;
@@ -26,10 +32,8 @@ import ro.mihalea.deerkat.ui.window.ClassifierDialog;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -82,18 +86,17 @@ public class TableService {
     private TableColumn<Transaction, Category> tcCategory;
 
 
-
     /**
      * Create the table service needed to manage a TableView
-     * @param controller MainController used to manage the FXML
-     * @param table TableView received from the loader
-     * @param alertFactory AlertFactory instantiated with the controller as the owner
+     *
+     * @param controller     MainController used to manage the FXML
+     * @param table          TableView received from the loader
+     * @param alertFactory   AlertFactory instantiated with the controller as the owner
      * @param transactionSql SQL Repository used to store transactions
-     * @param categorySql SQL Repository used to store categories
-     * @param classifier Classifier used to suggest categories for transactions
+     * @param classifier     Classifier used to suggest categories for transactions
      */
     public TableService(MainController controller, TableView<Transaction> table, AlertFactory alertFactory,
-                        TransactionSqlRepository transactionSql, CategorySqlRepository categorySql,
+                        TransactionSqlRepository transactionSql,
                         AbstractClassifier classifier, StatusService statusService) {
         this.controller = controller;
         this.table = table;
@@ -105,11 +108,12 @@ public class TableService {
 
     /**
      * Set all the columns from the table
-     * @param postingDate Column containing the posting date
+     *
+     * @param postingDate     Column containing the posting date
      * @param transactionDate Column containing the transaction date
-     * @param details Column containing the details
-     * @param amount Column containing the amount
-     * @param category Column containing the category
+     * @param details         Column containing the details
+     * @param amount          Column containing the amount
+     * @param category        Column containing the category
      */
     public void setColumns(TableColumn<Transaction, LocalDate> postingDate, TableColumn<Transaction, LocalDate> transactionDate,
                            TableColumn<Transaction, String> details, TableColumn<Transaction, Double> amount,
@@ -126,8 +130,8 @@ public class TableService {
      * Setup and initialise all variables that are need for this instance
      */
     public void initialise() {
-        initialiseColumns();
         initialiseModel();
+        initialiseColumns();
         initialiseKeyListener();
     }
 
@@ -136,14 +140,56 @@ public class TableService {
      */
     private void initialiseKeyListener() {
         table.setOnKeyReleased(ke -> {
-            if(ke.getCode() == KeyCode.ENTER && !table.getSelectionModel().isEmpty()) {
+            if (ke.getCode() == KeyCode.ENTER && !table.getSelectionModel().isEmpty()) {
                 Transaction transaction = table.getSelectionModel().getSelectedItem();
                 // This should never be null, but have this sanity check
-                if(transaction != null) {
+                if (transaction != null) {
                     handleCategoryClick(transaction);
                 }
             }
         });
+    }
+
+    /**
+     * Group varying confidence levels into groups so that they can be sorted by the color hint
+     * @param transaction Transaction that needs to be sorted
+     * @return ConfindenceLevel values
+     */
+    private Integer getConfidenceLevel(Transaction transaction) {
+        if(transaction.getInflow()) {
+            return ConfidenceLevel.USER_SET + 1;
+        } else if(transaction.getConfidence() >= ConfidenceLevel.USER_SET) {
+            return ConfidenceLevel.USER_SET;
+        } else if (transaction.getConfidence() >= ConfidenceLevel.PRETTY_SURE) {
+            return ConfidenceLevel.PRETTY_SURE;
+        } else if (transaction.getConfidence() >= ConfidenceLevel.NEED_CONFIRMATION) {
+            return ConfidenceLevel.NEED_CONFIRMATION;
+        } else {
+            return ConfidenceLevel.NONE;
+        }
+
+    }
+
+    /**
+     * Sort the underlying table view model based on confidence levels, category names, dates and details
+     */
+    private void sortModel() {
+        FXCollections.sort(
+                model,
+                Comparator.comparing(t -> this.getConfidenceLevel((Transaction) t)).reversed()
+                        .thenComparing(t -> {
+                            Transaction transaction = (Transaction) t;
+                            if(transaction.getCategory() == null) {
+                                return "";
+                            } else {
+                                return transaction.getCategory().getTitle();
+                            }
+                        })
+                        .thenComparing(t -> ((Transaction) t).getPostingDate())
+                        .thenComparing(t -> ((Transaction) t).getTransactionDate())
+                        .thenComparing(t -> ((Transaction) t).getDetails())
+        );
+        log.debug("Sorting triggered");
     }
 
     /**
@@ -152,13 +198,20 @@ public class TableService {
     private void initialiseModel() {
         model.addListener((ListChangeListener<Transaction>) c -> {
             while (c.next()) {
+                if(c.wasAdded() || c.wasRemoved() || c.wasAdded()) {
+                    sortModel();
+                }
                 if (c.wasAdded()) {
                     log.debug("One or more items have been added to the table");
                     for (Transaction t : c.getAddedSubList()) {
                         searchMatches(t);
                     }
                 }
+
+
             }
+
+
         });
     }
 
@@ -192,10 +245,10 @@ public class TableService {
      */
     private void handleCategoryClick(Transaction transaction) {
         if (transaction.getInflow()) {
-                        /*
-                        Prevent users from changing the category of an inflow transaction
-                        as they should have no category set because it gets generated at runtime
-                        */
+            /*
+            Prevent users from changing the category of an inflow transaction
+            as they should have no category set because it gets generated at runtime
+            */
             alertFactory.create(
                     Alert.AlertType.INFORMATION,
                     "Inflow transaction",
@@ -218,6 +271,7 @@ public class TableService {
 
                 try {
                     transactionSql.update(transaction);
+                    this.sortModel();
                 } catch (RepositoryUpdateException e) {
                     log.error("Failed to update transaction after categorisation: " + transaction, e);
                     statusService.showError("Failed to update transaction in the database");
@@ -258,7 +312,7 @@ public class TableService {
         //Count the number of transactions found may need user confirmation
         int needConfirmation = 0;
 
-        if(transaction.getConfidence() < ConfidenceLevel.USER_SET && !transaction.getInflow()) {
+        if (transaction.getConfidence() < ConfidenceLevel.USER_SET && !transaction.getInflow()) {
             Optional<CategoryMatch> best = classifier.getBest(transaction);
             if (best.isPresent()) {
                 CategoryMatch match = best.get();
@@ -271,7 +325,7 @@ public class TableService {
                         transactionSql.update(transaction);
                         updated = true;
 
-                        if(match.getConfidence() >= ConfidenceLevel.PRETTY_SURE) {
+                        if (match.getConfidence() >= ConfidenceLevel.PRETTY_SURE) {
                             // Similarity between AUTOMATIC_MATCH_VALUE and MAXIMUM
                             // Add this item to the classifier's data model as it's most certainly a good match,
                             // and skip this for NEED_CONFIRMATION matches as I don't want to have the classifier
@@ -389,11 +443,12 @@ public class TableService {
 
     /**
      * Returns the currently selected item if a selection is made
+     *
      * @return Optional that may contain a selected transaction
      */
     public Optional<Transaction> getSelected() {
         Transaction transaction = table.getSelectionModel().getSelectedItem();
-        if(transaction != null) {
+        if (transaction != null) {
             return Optional.of(transaction);
         } else {
             return Optional.empty();
@@ -437,7 +492,7 @@ public class TableService {
 
                 if (transaction != null) {
                     // Apply different styling classes and tooltips based on the confidence level of the match
-                    if(transaction.getConfidence() >= ConfidenceLevel.USER_SET) {
+                    if (transaction.getConfidence() >= ConfidenceLevel.USER_SET) {
                         getStyleClass().add("user-set");
                         setTooltip(new Tooltip("User-set category"));
                     } else if (transaction.getConfidence() >= ConfidenceLevel.PRETTY_SURE) {
@@ -450,5 +505,12 @@ public class TableService {
                 }
             }
         }
+    }
+
+    /**
+     * Have the table view request focus
+     */
+    public void requestFocus() {
+        Platform.runLater(table::requestFocus);
     }
 }

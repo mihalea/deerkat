@@ -1,6 +1,7 @@
 package ro.mihalea.deerkat.model;
 
 import lombok.*;
+import org.apache.logging.log4j.util.Strings;
 
 import java.util.Objects;
 
@@ -12,7 +13,7 @@ import java.util.Objects;
 @Getter
 @Setter
 @ToString
-public class Category {
+public class Category implements Comparable<Category>{
 
     /**
      * Unique id identifying the category in the database
@@ -43,5 +44,15 @@ public class Category {
     public int hashCode() {
 
         return Objects.hash(id, parentId);
+    }
+
+    /**
+     * Compare current category with another based on their titles
+     * @param o Category that it needs comparing against
+     * @return Integer value signifying the relationship between the titles, using conventional values (-1, 0, 1)
+     */
+    @Override
+    public int compareTo(Category o) {
+        return this.getTitle().compareTo(o.getTitle());
     }
 }

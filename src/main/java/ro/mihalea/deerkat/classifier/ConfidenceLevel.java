@@ -19,5 +19,5 @@ public class ConfidenceLevel {
     /**
      * The category has been set by the user and is 100% correct
      */
-    public static int USER_SET = 100;
+    public static int USER_SET = 101;
 }

@@ -138,6 +138,8 @@ public class TransferService {
 
                     log.info("Imported {} out of {} transaction from HTML", successful, total);
 
+                    table.requestFocus();
+
                     if (successful == 0 && total != 0) {
                         alertFactory.createError("Import", "No transactions have been imported. \n" +
                                 "They may already be in the database.").showAndWait();
@@ -153,7 +155,7 @@ public class TransferService {
                     alertFactory.createError(
                             "Import error",
                             "An error occurred while trying to import your file"
-                    );
+                    ).showAndWait();
                 }
             };
 

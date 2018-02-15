@@ -142,7 +142,7 @@ public class MainController {
         status = new StatusService(lbStatus, progressBar);
 
         table = new TableService(this, transactionsTable, alertFactory,
-                transactionSql, categorySql, classifier, status);
+                transactionSql, classifier, status);
         table.setColumns(tcPostingDate, tcTransactionDate, tcDetails, tcAmount, tcCategory);
         table.initialise();
 
