@@ -77,6 +77,11 @@ public class TableService {
     private ObservableList<Transaction> model = FXCollections.observableArrayList();
 
     /**
+     * Sorting can be turned off by the user
+     */
+    private boolean sorting = true;
+
+    /**
      * Columns used to display data from a transaction
      */
     private TableColumn<Transaction, LocalDate> tcPostingDate;
@@ -174,22 +179,24 @@ public class TableService {
      * Sort the underlying table view model based on confidence levels, category names, dates and details
      */
     private void sortModel() {
-        FXCollections.sort(
-                model,
-                Comparator.comparing(t -> this.getConfidenceLevel((Transaction) t)).reversed()
-                        .thenComparing(t -> {
-                            Transaction transaction = (Transaction) t;
-                            if(transaction.getCategory() == null) {
-                                return "";
-                            } else {
-                                return transaction.getCategory().getTitle();
-                            }
-                        })
-                        .thenComparing(t -> ((Transaction) t).getPostingDate())
-                        .thenComparing(t -> ((Transaction) t).getTransactionDate())
-                        .thenComparing(t -> ((Transaction) t).getDetails())
-        );
-        log.debug("Sorting triggered");
+        if(sorting) {
+            FXCollections.sort(
+                    model,
+                    Comparator.comparing(t -> this.getConfidenceLevel((Transaction) t)).reversed()
+                            .thenComparing(t -> {
+                                Transaction transaction = (Transaction) t;
+                                if (transaction.getCategory() == null) {
+                                    return "";
+                                } else {
+                                    return transaction.getCategory().getTitle();
+                                }
+                            })
+                            .thenComparing(t -> ((Transaction) t).getPostingDate())
+                            .thenComparing(t -> ((Transaction) t).getTransactionDate())
+                            .thenComparing(t -> ((Transaction) t).getDetails())
+            );
+            log.debug("Sorting triggered");
+        }
     }
 
     /**
