@@ -21,6 +21,7 @@ public abstract class AbstractClassifier {
             "uae",
             "abu",
             "dhabi",
+            "abudhabi",
             "llc",
             "are"
     );

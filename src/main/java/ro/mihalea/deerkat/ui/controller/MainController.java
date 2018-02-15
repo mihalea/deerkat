@@ -1,15 +1,11 @@
 package ro.mihalea.deerkat.ui.controller;
 
 import javafx.application.Platform;
-import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import lombok.extern.log4j.Log4j2;
-import ro.mihalea.deerkat.classifier.CombinedClassifier;
-import ro.mihalea.deerkat.classifier.NaiveClassifier;
 import ro.mihalea.deerkat.exception.repository.*;
 import ro.mihalea.deerkat.ui.service.StatusService;
 import ro.mihalea.deerkat.ui.service.TableService;
@@ -18,15 +14,11 @@ import ro.mihalea.deerkat.ui.window.AlertFactory;
 import ro.mihalea.deerkat.model.Category;
 import ro.mihalea.deerkat.model.Transaction;
 import ro.mihalea.deerkat.repository.CategorySqlRepository;
-import ro.mihalea.deerkat.repository.CsvRepository;
 import ro.mihalea.deerkat.repository.TransactionSqlRepository;
 import ro.mihalea.deerkat.classifier.AbstractClassifier;
-import ro.mihalea.deerkat.classifier.FuzzyClassifier;
+import ro.mihalea.deerkat.classifier.impl.FuzzyClassifier;
 import ro.mihalea.deerkat.utility.HtmlProcessor;
 
-import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;

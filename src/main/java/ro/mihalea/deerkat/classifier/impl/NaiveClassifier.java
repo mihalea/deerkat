@@ -1,8 +1,10 @@
-package ro.mihalea.deerkat.classifier;
+package ro.mihalea.deerkat.classifier.impl;
 
 import de.daslaboratorium.machinelearning.classifier.Classification;
 import de.daslaboratorium.machinelearning.classifier.Classifier;
 import de.daslaboratorium.machinelearning.classifier.bayes.BayesClassifier;
+import ro.mihalea.deerkat.classifier.AbstractClassifier;
+import ro.mihalea.deerkat.classifier.CategoryMatch;
 import ro.mihalea.deerkat.model.Category;
 import ro.mihalea.deerkat.model.Transaction;
 
@@ -11,8 +13,10 @@ import java.util.stream.Collectors;
 
 /**
  * Classifier that uses machine learning to sort transactions based on bayes' theorem
+ *
+ * THIS CURRENT IMPLEMENTATION IS A FLOP, CORRECTLY MATCHING LESS THAN 1% OF TRANSACTIONS
  */
-public class NaiveClassifier extends AbstractClassifier{
+public class NaiveClassifier extends AbstractClassifier {
     private Classifier<String, Category> bayes = new BayesClassifier<>();
 
     public NaiveClassifier() {

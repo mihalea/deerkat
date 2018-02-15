@@ -1,5 +1,9 @@
-package ro.mihalea.deerkat.classifier;
+package ro.mihalea.deerkat.classifier.impl;
 
+import ro.mihalea.deerkat.classifier.AbstractClassifier;
+import ro.mihalea.deerkat.classifier.CategoryMatch;
+import ro.mihalea.deerkat.classifier.impl.FuzzyClassifier;
+import ro.mihalea.deerkat.classifier.impl.NaiveClassifier;
 import ro.mihalea.deerkat.model.Category;
 import ro.mihalea.deerkat.model.Transaction;
 
@@ -71,7 +75,7 @@ public class CombinedClassifier extends AbstractClassifier {
         // Ignore matches that are below 30% confidence and sort them based on their confidence level
         return matches.stream()
                 .filter(cm -> cm.getConfidence() > 30)
-                .sorted(Comparator.comparingInt(CategoryMatch::getConfidence))
+                .sorted(Comparator.comparingInt(CategoryMatch::getConfidence).reversed())
                 .collect(Collectors.toList());
     }
 
