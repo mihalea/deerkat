@@ -3,6 +3,11 @@ package ro.mihalea.deerkat;
 import org.junit.Before;
 import org.junit.Test;
 import ro.mihalea.deerkat.classifier.*;
+import ro.mihalea.deerkat.classifier.impl.CombinedClassifier;
+import ro.mihalea.deerkat.classifier.impl.FuzzyClassifier;
+import ro.mihalea.deerkat.classifier.impl.NaiveClassifier;
+import ro.mihalea.deerkat.classifier.reducer.AverageReducer;
+import ro.mihalea.deerkat.classifier.reducer.MaximumReducer;
 import ro.mihalea.deerkat.model.Transaction;
 import ro.mihalea.deerkat.repository.CategorySqlRepository;
 import ro.mihalea.deerkat.repository.CsvRepository;
@@ -17,7 +22,7 @@ public class ClassifierAccuracyAnalyser {
     /**
      * Number of iterations that each classifier gets run through
      */
-    private final static int ITERATIONS = 250;
+    private final static int ITERATIONS = 5;
 
     /**
      * List of transactions used to check the accuracy of the classifier
@@ -52,12 +57,27 @@ public class ClassifierAccuracyAnalyser {
     }
 
     @Test
-    public void randomSampling() throws Exception {
-        if(modelData.size() <= 2) {
-            throw new Exception("Not enough model data");
-        }
+    public void fuzzyWithAverage() {
+        System.out.println("\n==> Running accuracy analysis for FuzzyClassifier with AverageReducer");
+        this.analyseClassifier(new FuzzyClassifier(new AverageReducer()), modelData);
+    }
 
-        this.analyseClassifier(new FuzzyClassifier(), modelData);
+    @Test
+    public void fuzzyWithMaximum() {
+        System.out.println("\n==> Running accuracy analysis for FuzzyClassifier with MaximumReducer");
+        this.analyseClassifier(new FuzzyClassifier(new MaximumReducer()), modelData);
+    }
+
+    @Test
+    public void naive() {
+        System.out.println("\n==> Running accuracy analysis for NaiveClassifier");
+        this.analyseClassifier(new NaiveClassifier(), modelData);
+    }
+
+    @Test
+    public void combined() {
+        System.out.println("\n==> Running accuracy analysis for CombinedClassifier");
+        this.analyseClassifier(new CombinedClassifier(), modelData);
     }
 
     private void analyseClassifier(AbstractClassifier classifier, List<Transaction> data) {
@@ -68,16 +88,18 @@ public class ClassifierAccuracyAnalyser {
         int anyMatch = 0;
         int badMatch = 0;
         int goodMatch = 0;
+        int deltaCount = 0;
         double averageAccuracy = 0;
         double goodAccuracy = 0;
         double badAccuracy = 0;
+        double averageDelta = 0;
 
         for (int i = 0; i < ITERATIONS; i++) {
             // Shuffle the list so that a random sample can be chosen
-            Collections.shuffle(modelData);
+            Collections.shuffle(data);
 
-            List<Transaction> training = modelData.subList(0, trainingSamples);
-            List<Transaction> crosscheck = modelData.subList(trainingSamples, modelData.size() - 1);
+            List<Transaction> training = data.subList(0, trainingSamples);
+            List<Transaction> crosscheck = data.subList(trainingSamples, data.size() - 1);
 
             classifier.reset();
             classifier.learn(training);
@@ -87,6 +109,7 @@ public class ClassifierAccuracyAnalyser {
 
                 if (matchList.size() == 0) {
                     noMatch += 1;
+//                    System.out.println(" NO MATCH: " + transaction.getDetails());
                 } else {
                     CategoryMatch best = matchList.get(0);
 
@@ -96,6 +119,15 @@ public class ClassifierAccuracyAnalyser {
                     if (!best.getCategory().equals(transaction.getCategory())) {
                         badMatch += 1;
                         badAccuracy += best.getConfidence();
+
+                        System.out.println("BAD MATCH: " + transaction.getDetails());
+
+                        for(CategoryMatch match : matchList) {
+                            if(match.getCategory().equals(transaction.getCategory())) {
+                                deltaCount += 1;
+                                averageDelta += best.getConfidence() - match.getConfidence();
+                            }
+                        }
                     } else {
                         goodMatch += 1;
                         goodAccuracy += best.getConfidence();
@@ -107,10 +139,9 @@ public class ClassifierAccuracyAnalyser {
         averageAccuracy /= anyMatch;
         goodAccuracy /= goodMatch;
         badAccuracy /= badMatch;
+        averageDelta /= deltaCount;
 
         System.out.println("\n" +
-                "ACCURACY ANALYSIS FOR <" + classifier.getClass().getSimpleName() + ">\n" +
-                "\n" +
                 "Total transactions: " + data.size() + "\n" +
                 "\n" +
                 "  No match: " + noMatch + "\n" +
@@ -121,7 +152,10 @@ public class ClassifierAccuracyAnalyser {
                 "   Good accuracy: " + String.format("%.2f", goodAccuracy) + " %\n" +
                 "    Bad accuracy: " + String.format("%.2f", badAccuracy) + " %\n" +
                 "\n" +
-                "Match accuracy: " + String.format("%.2f", 1d * goodMatch / (anyMatch + noMatch) * 100) + " %\n" +
+                "Avg delta: " + String.format("%.2f", averageDelta) + "\n" +
+                "\n" +
+                "   Match accuracy: " + String.format("%.2f", 1d * goodMatch / (anyMatch) * 100) + " %\n" +
+                "Match probability: " + String.format("%.2f", 1d * goodMatch / (anyMatch + noMatch) * 100) + " %\n" +
                 "\n");
     }
 }
