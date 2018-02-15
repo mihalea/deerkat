@@ -8,14 +8,14 @@ import ro.mihalea.deerkat.classifier.impl.FuzzyClassifier;
 import ro.mihalea.deerkat.classifier.impl.NaiveClassifier;
 import ro.mihalea.deerkat.classifier.reducer.AverageReducer;
 import ro.mihalea.deerkat.classifier.reducer.MaximumReducer;
+import ro.mihalea.deerkat.model.Category;
 import ro.mihalea.deerkat.model.Transaction;
 import ro.mihalea.deerkat.repository.CategorySqlRepository;
 import ro.mihalea.deerkat.repository.CsvRepository;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ClassifierAccuracyAnalyser {
@@ -94,6 +94,8 @@ public class ClassifierAccuracyAnalyser {
         double badAccuracy = 0;
         double averageDelta = 0;
 
+        Map<String, Integer> noMatchCategories = new HashMap<>();
+
         for (int i = 0; i < ITERATIONS; i++) {
             // Shuffle the list so that a random sample can be chosen
             Collections.shuffle(data);
@@ -109,6 +111,9 @@ public class ClassifierAccuracyAnalyser {
 
                 if (matchList.size() == 0) {
                     noMatch += 1;
+
+                    int count = noMatchCategories.getOrDefault(transaction.getDetails(), 0);
+                    noMatchCategories.put(transaction.getDetails(), count + 1);
 //                    System.out.println(" NO MATCH: " + transaction.getDetails());
                 } else {
                     CategoryMatch best = matchList.get(0);
@@ -141,6 +146,12 @@ public class ClassifierAccuracyAnalyser {
         badAccuracy /= badMatch;
         averageDelta /= deltaCount;
 
+        String hardest = noMatchCategories.entrySet().stream()
+                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                .limit(10)
+                .map(e -> e.getKey() + " (" + e.getValue() + ")")
+                .collect(Collectors.joining("\n  ", "  ", ""));
+
         System.out.println("\n" +
                 "Total transactions: " + data.size() + "\n" +
                 "\n" +
@@ -156,6 +167,9 @@ public class ClassifierAccuracyAnalyser {
                 "\n" +
                 "   Match accuracy: " + String.format("%.2f", 1d * goodMatch / (anyMatch) * 100) + " %\n" +
                 "Match probability: " + String.format("%.2f", 1d * goodMatch / (anyMatch + noMatch) * 100) + " %\n" +
+                "\n" +
+                "Hardest to match: \n" +
+                hardest +
                 "\n");
     }
 }
