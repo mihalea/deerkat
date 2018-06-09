@@ -63,6 +63,11 @@ public class HtmlProcessor {
             Elements dataElements = row.select("td");
             Transaction.TransactionBuilder builder = Transaction.builder();
 
+            // Discard row as it contains the same transactions as the one processed before, but in the original currency
+            if(dataElements.get(0).text().isEmpty()) {
+                continue;
+            }
+
             // If Cr is found in the last column it means that this transactions has added money to this account
             // Mark the transaction's inflow flag as true
             if (dataElements.get(dataElements.size() - 1).text().equals("Cr")) {
@@ -112,9 +117,9 @@ public class HtmlProcessor {
 
                 transactions.add(builder.build());
             } catch (DateTimeParseException e) {
-                throw new TransactionParseException("Failed to parse the date format!", e);
+                throw new TransactionParseException("Failed to parse the date format for data: " + dataElements.text(), e);
             } catch (NumberFormatException e) {
-                throw new TransactionParseException("Failed to parse the number column!", e);
+                throw new TransactionParseException("Failed to parse the number column for data: " + dataElements.text(), e);
             }
         }
 
